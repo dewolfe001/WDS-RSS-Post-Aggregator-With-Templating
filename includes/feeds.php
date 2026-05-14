@@ -7,6 +7,51 @@ namespace WebDevStudios\RSS_Post_Aggregator;
 class RSS_Post_Aggregator_Feeds {
 
 	/**
+	 * Current RSS feed URL.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @var string
+	 */
+	public $rss_link = '';
+
+	/**
+	 * Current SimplePie item being processed.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @var object|null
+	 */
+	protected $item = null;
+
+	/**
+	 * Cache duration, in seconds.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @var int
+	 */
+	public $cache_time = 0;
+
+	/**
+	 * Transient cache key for the current request.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @var string
+	 */
+	public $transient_id = '';
+
+	/**
+	 * DOM parser used to inspect feed item HTML.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @var \DOMDocument|null
+	 */
+	protected $dom = null;
+
+	/**
 	 * Replaces wp_widget_rss_output.
 	 *
 	 * @since 0.1.1
@@ -15,14 +60,14 @@ class RSS_Post_Aggregator_Feeds {
 	 * @param  array $args     Array of arguments.
 	 * @return array           Returns an array with error message or RSS item results.
 	 */
-	function get_items( $rss_link, $args ) {
+	public function get_items( $rss_link, $args ) {
 		$this->rss_link = $rss_link;
 
 		$args = $this->process_args( $args );
 
 		$rss_items = get_transient( $this->transient_id );
 
-		if ( ! isset( $_GET['delete-trans'] ) && $this->cache_time && $rss_items ) {
+		if ( ! isset( $_GET['delete-trans'] ) && $this->cache_time && $rss_items ) { # phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			return $rss_items;
 		}
 
@@ -134,7 +179,7 @@ class RSS_Post_Aggregator_Feeds {
 	 * @return string
 	 */
 	public function get_title() {
-		$title = esc_html( trim( strip_tags( $this->item->get_title() ) ) );
+		$title = esc_html( trim( strip_tags( (string) $this->item->get_title() ) ) );
 		if ( empty( $title ) ) {
 			$title = __( 'Untitled', 'wds-rss-post-aggregator' );
 		}
@@ -150,7 +195,7 @@ class RSS_Post_Aggregator_Feeds {
 	 * @return string Link to RSS feed item.
 	 */
 	public function get_link() {
-		$link = $this->item->get_link();
+		$link = (string) $this->item->get_link();
 
 		while ( stristr( $link, 'http' ) != $link ) {
 			$link = substr( $link, 1 );
@@ -201,7 +246,7 @@ class RSS_Post_Aggregator_Feeds {
 	 * @return string Feed item summary.
 	 */
 	public function get_summary() {
-		$summary = @html_entity_decode( $this->item->get_description(), ENT_QUOTES, get_option( 'blog_charset' ) );
+		$summary = html_entity_decode( (string) $this->item->get_description(), ENT_QUOTES, get_option( 'blog_charset' ) );
 
 		$length = (int) apply_filters( 'rss_post_aggregator_feed_summary_length', 100, $this->rss_link, $this );
 
@@ -228,7 +273,7 @@ class RSS_Post_Aggregator_Feeds {
 		$src = '';
 
 		// Get link to the parent item.
-		$link = $this->item->get_link();
+		$link = (string) $this->item->get_link();
 
 		// Get HTTP request response.
 		$data = wp_remote_get( $link );
@@ -247,7 +292,10 @@ class RSS_Post_Aggregator_Feeds {
 		}
 
 		// Load DOM object for our content.
-		@$this->dom()->loadHTML( $content_body );
+		$previous_libxml_errors = libxml_use_internal_errors( true );
+		$this->dom()->loadHTML( $content_body );
+		libxml_clear_errors();
+		libxml_use_internal_errors( $previous_libxml_errors );
 
 		// Get og:image meta tag value from our content.
 		foreach ( $this->dom()->getElementsByTagName( 'meta' ) as $meta ) {
@@ -269,10 +317,10 @@ class RSS_Post_Aggregator_Feeds {
 	 * @return array Returns an object.
 	 */
 	public function dom() {
-		if ( isset( $this->dom ) ) {
+		if ( null !== $this->dom ) {
 			return $this->dom;
 		}
-		$this->dom = new DOMDocument();
+		$this->dom = new \DOMDocument();
 
 		return $this->dom;
 	}

@@ -1,17 +1,19 @@
 === WDS RSS Post Aggregator ===
-Contributors:      jtsternberg
+Contributors:      jtsternberg, dewolfe001
 Tags:              post import, feed import, rss import, rss aggregator
-Requires at least: 3.6.0
-Tested up to:      4.1
-Stable tag:        0.1.0
+Requires at least: 6.0
+Tested up to:      7.0
+Stable tag:        0.2.0
 License:           GPLv2 or later
 License URI:       http://www.gnu.org/licenses/gpl-2.0.html
+Requires PHP:      8.3
+Donate link:       https://paypal.me/web321
 
 Aggregate posts from RSS Feeds
 
 == Description ==
 
-This project is hosted on [GitHub](http://github.com) feel free to [fork it and contribute](https://github.com/WebDevStudios/WDS-RSS-Post-Aggregator).
+This project is hosted on [GitHub](http://github.com) feel free to [fork it and contribute](https://github.com/WebDevStudios/WDS-RSS-Post-Aggregator). If this plugin helps you, please consider [donating to Web321 via PayPal](https://paypal.me/web321).
 
 WDS RSS Post Aggregator provides site owners the ability to selectively import RSS posts to their blog using WordPress' built in post selection interface.  Once a feed is selected and a post is imported, the excerpt, title, and all the usual things you would expect are editable.  You can even categorize and tag the posts in their own taxonomies.
 
@@ -56,6 +58,11 @@ function wds_get_my_posts( $query ){
 
 == Changelog ==
 
+= 0.2.0 =
+* Add PHP 8.3+ compatibility updates, including explicit class properties and safer DOM parsing.
+* Update compatibility metadata for WordPress 6.x and WordPress 7.
+* Add Web321 donation link.
+
 = 0.1.1 =
 * Removed CMB2 dependancy - [Fixes #2](https://github.com/WebDevStudios/WDS-RSS-Post-Aggregator/issues/2)
 * Code cleanup and docblocks
@@ -64,6 +71,9 @@ function wds_get_my_posts( $query ){
 * First release
 
 == Upgrade Notice ==
+
+= 0.2.0 =
+Compatibility release for PHP 8.3+ and WordPress 6.x/7.0.
 
 = 0.1.0 =
 First Release

@@ -7,6 +7,15 @@ namespace WebDevStudios\RSS_Post_Aggregator;
 class RSS_Post_Aggregator_Frontend {
 
 	/**
+	 * RSS post custom post type controller.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @var RSS_Post_Aggregator_CPT
+	 */
+	public $cpt;
+
+	/**
 	 * Constructor
 	 *
 	 * @since 0.1.1
@@ -65,18 +74,19 @@ class RSS_Post_Aggregator_Frontend {
 			return $link;
 		}
 
-		if ( isset( $post->original_url ) ) {
-			return $post->original_url;
+		static $original_urls = array();
+
+		$post_id = is_numeric( $post ) ? (int) $post : (int) $post->ID;
+
+		if ( array_key_exists( $post_id, $original_urls ) ) {
+			return $original_urls[ $post_id ];
 		}
 
-		$original_url = is_numeric( $post )
-			 ? get_post_meta( $post, $this->cpt->prefix . 'original_url', true )
-			 : get_post_meta( $post->ID, $this->cpt->prefix . 'original_url', true );
+		$original_url = get_post_meta( $post_id, $this->cpt->prefix . 'original_url', true );
 
-		// cache to the post object
-		$post->original_url = $original_url ? $original_url : $link;
+		$original_urls[ $post_id ] = $original_url ? $original_url : $link;
 
-		return $post->original_url;
+		return $original_urls[ $post_id ];
 	}
 
 }

@@ -10,6 +10,15 @@
 class RSS_Post_Aggregator_Category_Featured_Images_Widget extends WP_Widget {
 
 	/**
+	 * Current feed summary excerpt length.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @var int
+	 */
+	private $excerpt_length = 0;
+
+	/**
 	 * Default widget options
 	 *
 	 * @since 0.1.1
@@ -48,9 +57,9 @@ class RSS_Post_Aggregator_Category_Featured_Images_Widget extends WP_Widget {
 	public function __construct() {
 		parent::__construct(
 			'rss_post_aggregator_category_featured_images',
-			__( 'RSS Feed with Images', 'wds-rss-post-Aggregator' ),
+			__( 'RSS Feed with Images', 'wds-rss-post-aggregator' ),
 			array(
-				'description' => __( 'Reads and displays a supplied RSS feed with featured images.', 'wds-rss-post-Aggregator' ),
+				'description' => __( 'Reads and displays a supplied RSS feed with featured images.', 'wds-rss-post-aggregator' ),
 			)
 		);
 	}
@@ -67,7 +76,7 @@ class RSS_Post_Aggregator_Category_Featured_Images_Widget extends WP_Widget {
 		<p>
 			<?php echo __( 'Title', 'wds-rss-post-aggregator' ); ?>
 			<input class="widefat" id="<?php echo $this->get_field_id( 'title' ); ?>" name="<?php echo $this->get_field_name( 'title' ); ?>" type="text" value="<?php echo esc_attr( $instance['title'] ); ?>" />
-			<?php echo __( 'Feed', 'wds-rss-post-Aggregator' ); ?>
+			<?php echo __( 'Feed', 'wds-rss-post-aggregator' ); ?>
 			<?php echo $this->feed_links_dropdown( $this->get_field_name( 'feed_url' ), $instance['feed_url'] ); ?>
 		</p>
 		<p>
@@ -103,7 +112,7 @@ class RSS_Post_Aggregator_Category_Featured_Images_Widget extends WP_Widget {
 
 		// Sanitize options
 		foreach ( $this->defaults as $key => $default_value ) {
-			$instance[ $key ] = sanitize_text_field( $new_instance[ $key ] );
+			$instance[ $key ] = isset( $new_instance[ $key ] ) ? sanitize_text_field( $new_instance[ $key ] ) : $default_value;
 		}
 
 		$rss_args = $this->rss_args;
@@ -160,7 +169,7 @@ class RSS_Post_Aggregator_Category_Featured_Images_Widget extends WP_Widget {
 
 		$posts = $rss->get_items( $feed_url, $rss_args );
 
-		if ( isset( $this->excerpt_length ) ) {
+		if ( 0 < $this->excerpt_length ) {
 			remove_filter( 'rss_post_aggregator_feed_summary_length', array( $this, 'filter_excerpt_length' ) );
 		}
 
@@ -211,7 +220,8 @@ class RSS_Post_Aggregator_Category_Featured_Images_Widget extends WP_Widget {
 	function feed_links_dropdown( $name = '', $term_name = '' ) {
 		$s = '<select name="' . esc_attr( $name ) . '" class="widefat">';
 
-		$terms = get_terms( 'rss-feed-links', array(
+		$terms = get_terms( array(
+			'taxonomy'   => 'rss-feed-links',
 			'hide_empty' => false,
 		) );
 		if ( ! empty( $terms ) && ! is_wp_error( $terms ) ) {
@@ -238,7 +248,7 @@ class RSS_Post_Aggregator_Category_Featured_Images_Widget extends WP_Widget {
 	 * @return integer         Return excerpt length.
 	 */
 	public function filter_excerpt_length( $length = 0 ) {
-		if ( isset( $this->excerpt_length ) ) {
+		if ( 0 < $this->excerpt_length ) {
 			$length = (int) $this->excerpt_length;
 		}
 

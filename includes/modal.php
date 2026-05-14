@@ -197,7 +197,8 @@ class RSS_Post_Aggregator_Modal {
 			return $this->feed_links;
 		}
 
-		$feed_links = get_terms( $this->tax->taxonomy(), array(
+		$feed_links = get_terms( array(
+			'taxonomy'   => $this->tax->taxonomy(),
 			'hide_empty' => false,
 		) );
 

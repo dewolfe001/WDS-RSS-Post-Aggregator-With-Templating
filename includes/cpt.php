@@ -41,6 +41,15 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 	public $tax_slug;
 
 	/**
+	 * Whether the current admin screen is this CPT's listing table.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @var bool|null
+	 */
+	public $is_listing = null;
+
+	/**
 	 * Register Custom Post Types. See documentation in CPT_Core, and in wp-includes/post.php
 	 *
 	 * @since 0.1.1
@@ -144,7 +153,7 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 		switch ( $column ) {
 
 			case 'thumbnail':
-				$size = isset( $_GET['mode'] ) && 'excerpt' == $_GET['mode'] ? 'thumb' : array( 50, 50 );
+				$size = isset( $_GET['mode'] ) && 'excerpt' == $_GET['mode'] ? 'thumb' : array( 50, 50 ); # phpcs:ignore WordPress.Security.NonceVerification.Recommended
 				the_post_thumbnail( $size );
 				break;
 
@@ -207,7 +216,7 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 			return $post_id;
 		}
 
-		$url = esc_url( $_POST[ $this->prefix . 'original_url' ] );
+		$url = esc_url( wp_unslash( $_POST[ $this->prefix . 'original_url' ] ) );
 
 		update_post_meta( $post_id, $this->prefix . 'original_url', $url );
 	}
@@ -244,7 +253,7 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 			$report = array(
 				'post_id'           => $post_id,
 				'original_url'      => update_post_meta( $post_id, $this->prefix . 'original_url', esc_url_raw( $post_data['link'] ) ),
-				'img_src'           => $this->sideload_featured_image( esc_url_raw( $post_data['image'] ), $post_id ),
+				'img_src'           => $this->sideload_featured_image( isset( $post_data['image'] ) ? esc_url_raw( $post_data['image'] ) : '', $post_id ),
 				'wp_set_post_terms' => wp_set_post_terms( $post_id, array( $feed_id ), $this->tax_slug, true ),
 			);
 		} else {
@@ -294,7 +303,10 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 		}
 
 		// Set variables for storage, fix file filename for query strings.
-		preg_match( '/[^\?]+\.(jpe?g|jpe|gif|png)\b/i', $file_url, $matches );
+		if ( ! preg_match( '/[^\?]+\.(jpe?g|jpe|gif|png|webp)\b/i', $file_url, $matches ) ) {
+			return false;
+		}
+
 		$file_array = array();
 		$file_array['name'] = basename( $matches[0] );
 
@@ -344,16 +356,22 @@ function rss_post_get_feed_object( $post = false ) {
 		$post = $post && is_int( $post ) ? get_post( $post ) : $post;
 	}
 
-	if ( isset( $post->source_link ) ) {
-		return $post->source_link;
+	static $source_links = array();
+
+	if ( ! isset( $post->ID ) ) {
+		return '';
+	}
+
+	if ( array_key_exists( $post->ID, $source_links ) ) {
+		return $source_links[ $post->ID ];
 	}
 
 	$links = get_the_terms( $post->ID, $RSS_Post_Aggregator->tax_slug );
-	$post->source_link = ( $links && is_array( $links ) )
+	$source_links[ $post->ID ] = ( $links && is_array( $links ) )
 		? array_shift( $links )
 		: '';
 
-	return $post->source_link;
+	return $source_links[ $post->ID ];
 }
 
 /**

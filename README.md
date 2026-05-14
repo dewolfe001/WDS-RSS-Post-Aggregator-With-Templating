@@ -1,15 +1,17 @@
 # WDS RSS Post Aggregator #
-**Contributors:**      [jtsternberg](https://github.com/jtsternberg), [JayWood](https://github.com/JayWood), [stacyk](https://github.com/stacyk), [blobaugh](https://github.com/blobaugh), [lswilson](https://github.com/lswilson), [imBigWill](https://github.com/ImBigWill), [coreymcollins](https://github.com/coreymcollins)   
-**Tags:**              post import, feed import, rss import, rss aggregator   
-**Requires at least:** 3.6.0  
-**Tested up to:**      4.1  
-**Stable tag:**        0.1.1  
-**License:**           GPLv2 or later  
-**License URI:**       http://www.gnu.org/licenses/gpl-2.0.html  
+**Contributors:**      [jtsternberg](https://github.com/jtsternberg), [JayWood](https://github.com/JayWood), [stacyk](https://github.com/stacyk), [blobaugh](https://github.com/blobaugh), [lswilson](https://github.com/lswilson), [imBigWill](https://github.com/ImBigWill), [coreymcollins](https://github.com/coreymcollins), [dewolfe001](https://github.com/dewolfe001)
+**Tags:**              post import, feed import, rss import, rss aggregator
+**Requires at least:** 6.0
+**Tested up to:**      7.0
+**Stable tag:**        0.2.0
+**License:**           GPLv2 or later
+**License URI:**       http://www.gnu.org/licenses/gpl-2.0.html
+**Requires PHP:**       8.3
+**Donate link:**        [Donate to Web321 via PayPal](https://paypal.me/web321)
 
-Allows you to selectively import posts to your WordPress installation from RSS Feeds and save them locally so they're never lost.
+Allows you to selectively import posts to your WordPress installation from RSS Feeds and save them locally so they're never lost. If this plugin helps you, please consider [donating to Web321 via PayPal](https://paypal.me/web321).
 
-## Description ## 
+## Description ##
 
 WDS RSS Post Aggregator provides site owners the ability to selectively import RSS posts to their blog using WordPress' built in post selection interface.  Once a feed is selected and a post is imported, the excerpt, title, and all the usual things you would expect are editable.  You can even categorize and tag the posts in their own taxonomies.
 
@@ -43,27 +45,32 @@ You may also want to access the category information, which is housed in the `rs
 ## Frequently Asked Questions ##
 [Open A Ticket](https://github.com/WebDevStudios/WDS-RSS-Post-Aggregator/issues)
 
-* None Yet 
+* None Yet
 
 ## Screenshots ##
 
-![Importing RSS Posts](https://raw.githubusercontent.com/WebDevStudios/WDS-RSS-Post-Aggregator/master/screenshot-1.jpg)   
+![Importing RSS Posts](https://raw.githubusercontent.com/WebDevStudios/WDS-RSS-Post-Aggregator/master/screenshot-1.jpg)
 "Add New RSS Post" dialog
 
-![RSS Feed Links](https://raw.githubusercontent.com/WebDevStudios/WDS-RSS-Post-Aggregator/master/screenshot-2.jpg)   
+![RSS Feed Links](https://raw.githubusercontent.com/WebDevStudios/WDS-RSS-Post-Aggregator/master/screenshot-2.jpg)
 "RSS Feed Links" page, very similar to tags/categories
 
-![RSS Feed Categories](https://raw.githubusercontent.com/WebDevStudios/WDS-RSS-Post-Aggregator/master/screenshot-3.jpg)      
+![RSS Feed Categories](https://raw.githubusercontent.com/WebDevStudios/WDS-RSS-Post-Aggregator/master/screenshot-3.jpg)
 "RSS Feed Categories" page
 
-![Imported Posts](https://raw.githubusercontent.com/WebDevStudios/WDS-RSS-Post-Aggregator/master/screenshot-4.jpg)   
+![Imported Posts](https://raw.githubusercontent.com/WebDevStudios/WDS-RSS-Post-Aggregator/master/screenshot-4.jpg)
 Imported posts with imported featured image ( It's automatic!!! )
 
-![Post Edit Screen](https://raw.githubusercontent.com/WebDevStudios/WDS-RSS-Post-Aggregator/master/screenshot-5.jpg)      
+![Post Edit Screen](https://raw.githubusercontent.com/WebDevStudios/WDS-RSS-Post-Aggregator/master/screenshot-5.jpg)
 Post Edit Screen - Manually set RSS feed link.
 
 
 ## Changelog ##
+
+### 0.2.0 ###
+* Add PHP 8.3+ compatibility updates, including explicit class properties and safer DOM parsing.
+* Update compatibility metadata for WordPress 6.x and WordPress 7.
+* Add Web321 donation link.
 
 ### 0.1.1 ###
 * Removed CMB2 dependancy - [Fixes #2](https://github.com/WebDevStudios/WDS-RSS-Post-Aggregator/issues/2)

@@ -3,11 +3,13 @@
  * Plugin Name: RSS Post Aggregator
  * Plugin URI:  http://webdevstudios.com
  * Description: Aggregate posts from RSS Feeds
- * Version:     0.1.1
+ * Version:     0.2.0
  * Author:      WebDevStudios, Justin Sternberg
  * Author URI:  http://webdevstudios.com
- * Donate link: http://webdevstudios.com
+ * Donate link: https://paypal.me/web321
  * License:     GPLv2+
+ * Requires at least: 6.0
+ * Requires PHP: 8.3
  * Text Domain: wds-rss-post-aggregator
  * Domain Path: /languages
  */
@@ -66,7 +68,7 @@ spl_autoload_register( __NAMESPACE__ . '\rss_post_aggregator_autoload_classes' )
  */
 class RSS_Post_Aggregator {
 
-	const VERSION = '0.1.1';
+	const VERSION = '0.2.0';
 	private $cpt_slug          = 'rss-posts';
 	private $tax_slug          = 'rss-feed-links';
 	private $rss_category_slug = 'rss-category';
@@ -242,7 +244,7 @@ class RSS_Post_Aggregator {
 			case 'rss_category_slug':
 				return $this->{$field};
 			default:
-				throw new Exception( 'Invalid ' . __CLASS__ . ' property: ' . $field );
+				throw new \Exception( 'Invalid ' . __CLASS__ . ' property: ' . $field );
 		}
 	}
 }

@@ -1,5 +1,5 @@
 /**
- * RSS Post Aggregator - v0.1.0 - 2017-06-20
+ * RSS Post Aggregator - v0.2.0 - 2026-05-14
  * http://webdevstudios.com
  *
  * Copyright (c) 2017;

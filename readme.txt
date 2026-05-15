@@ -39,6 +39,8 @@ Imported RSS Post permalinks now open the local WordPress entry by default so vi
 
 Use the Featured image panel on each imported RSS Post to upload or replace the per-entry podcast title image. Re-importing an existing item will not overwrite a manually selected Featured image.
 
+Feed links can be configured for automatic hourly imports from the RSS Feed Links taxonomy screen. Each feed can import into RSS Posts or another public post type, and existing imported items are skipped instead of updated so manually edited content remains untouched.
+
 == Frequently Asked Questions ==
 [Open A Ticket](https://github.com/WebDevStudios/WDS-RSS-Post-Aggregator/issues)
 
@@ -58,6 +60,10 @@ Use the Featured image panel on each imported RSS Post to upload or replace the 
 * Fix multi-select RSS modal imports so every checked item is sent for import.
 * Add import settings for target post type, post status, cron polling, manual imports, and imported item templates.
 * Show imported RSS items in the RSS Feeds list regardless of which post type stores them.
+= 0.2.4 =
+* Add hourly scheduled imports for configured feeds, with per-feed destination post type settings.
+* Skip previously imported feed items without updating existing posts.
+* Add AJAX nonce/capability checks for manual imports.
 
 = 0.2.3 =
 * Capture requested RSS item fields, including iTunes podcast metadata, content, enclosure attributes, GUID attributes, and publication date, as post meta during import.
@@ -88,6 +94,8 @@ Use the Featured image panel on each imported RSS Post to upload or replace the 
 
 = 0.3.0 =
 Adds configurable RSS import post types, cron/manual polling, import templates, and fixes multi-select modal imports.
+= 0.2.4 =
+Feeds can now import hourly into RSS Posts or another public post type while skipping existing imported items.
 
 = 0.2.3 =
 RSS item fields are now retained as post meta for imported RSS Posts.

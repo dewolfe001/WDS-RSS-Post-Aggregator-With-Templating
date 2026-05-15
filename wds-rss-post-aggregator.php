@@ -150,7 +150,9 @@ class RSS_Post_Aggregator {
 		register_activation_hook( __FILE__, array( $this, '_activate' ) );
 		register_deactivation_hook( __FILE__, array( $this, '_deactivate' ) );
 		add_action( 'init', array( $this, 'init' ) );
+		add_action( 'init', array( $this, 'maybe_schedule_cron' ) );
 		add_action( 'admin_init', array( $this, 'admin_hooks' ) );
+		add_action( 'wds_rss_post_aggregator_cron_import', array( $this->modal, 'import_all_feeds' ) );
 
 		$this->rsscpt->hooks();
 		$this->taxonomy->hooks();
@@ -169,6 +171,8 @@ class RSS_Post_Aggregator {
 		add_option( 'wds_rss_aggregate_saved_feed_urls', array(), '', 'no' );
 		RSS_Post_Aggregator::include_file( 'admin' );
 		RSS_Post_Aggregator_Admin::activate();
+
+		$this->maybe_schedule_cron();
 	}
 
 	/**
@@ -178,6 +182,18 @@ class RSS_Post_Aggregator {
 	function _deactivate() {
 		RSS_Post_Aggregator::include_file( 'admin' );
 		RSS_Post_Aggregator_Admin::deactivate();
+		wp_clear_scheduled_hook( 'wds_rss_post_aggregator_cron_import' );
+	}
+
+	/**
+	 * Ensure the scheduled feed import event exists.
+	 *
+	 * @since 0.2.4
+	 */
+	public function maybe_schedule_cron() {
+		if ( ! wp_next_scheduled( 'wds_rss_post_aggregator_cron_import' ) ) {
+			wp_schedule_event( time() + HOUR_IN_SECONDS, 'hourly', 'wds_rss_post_aggregator_cron_import' );
+		}
 	}
 
 	/**

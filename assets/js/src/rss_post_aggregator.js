@@ -247,7 +247,8 @@ window.RSS_Post_Aggregator = (function(window, document, $, undefined){
 				data     : {
 					'action'   : 'rss_get_data',
 					'feed_url' : this.feed_url,
-					'feed_id'  : this.feed_id
+					'feed_id'  : this.feed_id,
+				'nonce'    : l10n.nonce
 				},
 				success: function( response ) {
 					// bb.trigger( 'closeModals' );

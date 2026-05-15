@@ -63,6 +63,8 @@ class RSS_Post_Aggregator_Modal {
 	 * Stores and returns JSON AJAX response.
 	 */
 	public function rss_save_posts() {
+		$this->verify_ajax_request();
+
 		foreach ( array( 'to_add', 'feed_url', 'feed_id' ) as $required ) {
 			if ( ! isset( $_REQUEST[ $required ] ) ) {
 				wp_send_json_error( $required . ' missing.' );
@@ -76,6 +78,19 @@ class RSS_Post_Aggregator_Modal {
 	}
 
 	/**
+	 * Verify AJAX request permissions.
+	 *
+	 * @since 0.2.4
+	 */
+	protected function verify_ajax_request() {
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( __( 'You do not have permission to import RSS posts.', 'wds-rss-post-aggregator' ), 403 );
+		}
+
+		check_ajax_referer( 'rss_post_aggregator_ajax', 'nonce' );
+	}
+
+	/**
 	 * Store posts.
 	 *
 	 * @since 0.1.1
@@ -86,13 +101,71 @@ class RSS_Post_Aggregator_Modal {
 	 */
 	public function save_posts( $posts, $feed_id, $post_type = '' ) {
 
-		$updated = array();
+		$post_type = $post_type ? sanitize_key( $post_type ) : $this->tax->get_target_post_type( $feed_id );
+		$updated   = array();
 		foreach ( $posts as $post_data ) {
 			$updated[ $post_data['title'] ] = $this->cpt->insert( $post_data, $feed_id, $post_type );
 		}
 
 		return $updated;
 	}
+
+	/**
+	 * Import all configured automatic feeds.
+	 *
+	 * @since 0.2.4
+	 *
+	 * @return array Import results keyed by feed term ID.
+	 */
+	public function import_all_feeds() {
+		$feeds = get_terms( array(
+			'taxonomy'   => $this->tax->taxonomy(),
+			'hide_empty' => false,
+		) );
+
+		if ( is_wp_error( $feeds ) || empty( $feeds ) ) {
+			return array();
+		}
+
+		$results = array();
+
+		foreach ( $feeds as $feed ) {
+			if ( ! $this->tax->is_auto_import_enabled( $feed->term_id ) ) {
+				continue;
+			}
+
+			$results[ $feed->term_id ] = $this->import_feed( $feed->name, $feed->term_id );
+		}
+
+		return $results;
+	}
+
+	/**
+	 * Import one configured feed.
+	 *
+	 * @since 0.2.4
+	 *
+	 * @param string $feed_url Feed URL.
+	 * @param int    $feed_id  Feed term ID.
+	 * @return array|\WP_Error Import result.
+	 */
+	public function import_feed( $feed_url, $feed_id ) {
+		$feed_items = $this->rss->get_items( esc_url_raw( $feed_url ), array(
+			'show_author'  => true,
+			'show_date'    => true,
+			'show_summary' => true,
+			'show_image'   => true,
+			'items'        => (int) apply_filters( 'rss_post_aggregator_scheduled_import_item_limit', 20, $feed_url, $feed_id ),
+			'cache_time'   => 0,
+		) );
+
+		if ( isset( $feed_items['error'] ) ) {
+			return new \WP_Error( 'rss_post_aggregator_feed_error', $feed_items['error'] );
+		}
+
+		return $this->save_posts( $feed_items, $feed_id, $this->tax->get_target_post_type( $feed_id ) );
+	}
+
 
 	/**
 	 * Get RSS data.
@@ -102,6 +175,8 @@ class RSS_Post_Aggregator_Modal {
 	 * @return string Return JSON object.
 	 */
 	public function rss_get_data() {
+		$this->verify_ajax_request();
+
 		foreach ( array( 'feed_url', 'feed_id' ) as $required ) {
 			if ( ! isset( $_REQUEST[ $required ] ) ) {
 				wp_send_json_error( $required . ' missing.' );
@@ -112,19 +187,7 @@ class RSS_Post_Aggregator_Modal {
 		$feed_id  = absint( $_REQUEST['feed_id'] );
 
 		if ( ! $feed_id ) {
-
-			$link = get_term_by( 'name', $feed_url, $this->tax->taxonomy() );
-
-			if ( $link ) {
-
-				$feed_id = $link->term_id;
-			} elseif ( $link = wp_insert_term( $feed_url, $this->tax->taxonomy() ) ) {
-
-				$feed_id = $link['term_id'];
-			} else {
-
-				$feed_id = false;
-			}
+			$feed_id = $this->ensure_feed_term( $feed_url );
 		}
 
 		if ( ! $feed_id ) {
@@ -144,6 +207,31 @@ class RSS_Post_Aggregator_Modal {
 		}
 
 		wp_send_json_success( compact( 'feed_url', 'feed_id', 'feed_items' ) );
+	}
+
+	/**
+	 * Ensure a feed URL has a term and default import settings.
+	 *
+	 * @since 0.2.4
+	 *
+	 * @param string $feed_url Feed URL.
+	 * @return int|false Feed term ID, or false on failure.
+	 */
+	protected function ensure_feed_term( $feed_url ) {
+		$link = get_term_by( 'name', $feed_url, $this->tax->taxonomy() );
+
+		if ( $link ) {
+			return (int) $link->term_id;
+		}
+
+		$link = wp_insert_term( $feed_url, $this->tax->taxonomy() );
+		if ( is_wp_error( $link ) || empty( $link['term_id'] ) ) {
+			return false;
+		}
+
+		update_term_meta( $link['term_id'], RSS_Post_Aggregator_Taxonomy::META_AUTO_IMPORT, '1' );
+
+		return (int) $link['term_id'];
 	}
 
 	/**
@@ -175,7 +263,7 @@ class RSS_Post_Aggregator_Modal {
 			'show_modal'      => isset( $_GET[ $this->cpt->slug_to_redirect ] ),
 			'no_data'         => __( 'No feed data found', 'wds-rss-post-aggregator' ),
 			'nothing_checked' => __( "You didn't select any posts. Do you want to close the search?", 'wds-rss-post-aggregator' ),
-			'import_post_type' => class_exists( __NAMESPACE__ . '\\RSS_Post_Aggregator_Admin' ) ? RSS_Post_Aggregator_Admin::get_settings()['import_post_type'] : $this->cpt->post_type(),
+			'nonce'           => wp_create_nonce( 'rss_post_aggregator_ajax' ),
 		) );
 
 		delete_option( 'wds_rss_aggregate_saved_feed_urls' );

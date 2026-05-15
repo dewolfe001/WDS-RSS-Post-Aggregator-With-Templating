@@ -288,23 +288,27 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 	 * @author JayWood, Justin Sternberg
 	 * @return array|string
 	 */
-	public function insert( $post_data, $feed_id ) {
+	public function insert( $post_data, $feed_id, $post_type = '' ) {
+		$post_type      = $this->get_import_post_type( $post_type );
+		$existing_post  = $this->post_exists( $post_data['link'] );
+
+		if ( $existing_post ) {
+			return array(
+				'post_id' => $existing_post->ID,
+				'status'  => 'skipped_existing',
+			);
+		}
+
 		$post_timestamp = $this->get_import_timestamp( $post_data );
 
 		$args = array(
 			'post_content'  => wp_kses_post( stripslashes( $post_data['summary'] ) ),
 			'post_title'    => esc_html( stripslashes( $post_data['title'] ) ),
 			'post_status'   => 'draft',
-			'post_type'     => $this->post_type(),
+			'post_type'     => $post_type,
 			'post_date'     => date( 'Y-m-d H:i:s', $post_timestamp ),
 			'post_date_gmt' => gmdate( 'Y-m-d H:i:s', $post_timestamp ),
 		);
-
-		$existing_post = $this->post_exists( $post_data['link'] );
-		if ( $existing_post ) {
-			$args['ID'] = $existing_post->ID;
-			$args['post_status'] = $existing_post->post_status;
-		}
 
 		$post_id = wp_insert_post( $args );
 		if ( $post_id ) {
@@ -325,7 +329,7 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 				'audio_url'         => $audio_url,
 				'rss_item_meta'     => $rss_item_meta,
 				'img_src'           => has_post_thumbnail( $post_id ) ? wp_get_attachment_url( get_post_thumbnail_id( $post_id ) ) : $this->sideload_featured_image( isset( $post_data['image'] ) ? esc_url_raw( $post_data['image'] ) : '', $post_id ),
-				'wp_set_post_terms' => wp_set_post_terms( $post_id, array( $feed_id ), $this->tax_slug, true ),
+				'wp_set_post_terms' => taxonomy_exists( $this->tax_slug ) ? wp_set_post_terms( $post_id, array( $feed_id ), $this->tax_slug, true ) : false,
 			);
 		} else {
 			$report = 'failed';
@@ -430,17 +434,31 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 	 * @author JayWood, Justin Sternberg
 	 * @return bool|mixed
 	 */
-	public function post_exists( $url ) {
+	public function post_exists( $url, $post_type = 'any' ) {
 		$args = array(
 			'posts_per_page' => 1,
-			'post_status'    => array( 'publish', 'pending', 'draft', 'future' ),
-			'post_type'      => $this->post_type(),
+			'post_status'    => array( 'publish', 'pending', 'draft', 'future', 'private' ),
+			'post_type'      => $post_type ? $post_type : 'any',
 			'meta_key'       => $this->prefix . 'original_url',
 			'meta_value'     => esc_url_raw( $url ),
 		);
 		$posts = get_posts( $args );
 
 		return $posts && is_array( $posts ) ? $posts[0] : false;
+	}
+
+	/**
+	 * Validate an import destination post type.
+	 *
+	 * @since 0.2.4
+	 *
+	 * @param string $post_type Requested post type.
+	 * @return string Valid post type.
+	 */
+	protected function get_import_post_type( $post_type ) {
+		$post_type = $post_type ? sanitize_key( $post_type ) : $this->post_type();
+
+		return post_type_exists( $post_type ) ? $post_type : $this->post_type();
 	}
 
 	/**

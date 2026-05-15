@@ -2,7 +2,7 @@
   "name": "rss-post-aggregator",
   "title": "RSS Post Aggregator",
   "description": "Aggregate posts from RSS Feeds",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "homepage": "http://webdevstudios.com",
   "author": {
     "name": "WebDevStudios, Justin Sternberg",

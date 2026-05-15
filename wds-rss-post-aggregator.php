@@ -3,7 +3,7 @@
  * Plugin Name: RSS Post Aggregator
  * Plugin URI:  http://webdevstudios.com
  * Description: Aggregate posts from RSS Feeds
- * Version:     0.2.3
+ * Version:     0.2.4
  * Author:      WebDevStudios, Justin Sternberg
  * Author URI:  http://webdevstudios.com
  * Donate link: https://paypal.me/web321
@@ -68,7 +68,7 @@ spl_autoload_register( __NAMESPACE__ . '\rss_post_aggregator_autoload_classes' )
  */
 class RSS_Post_Aggregator {
 
-	const VERSION = '0.2.3';
+	const VERSION = '0.2.4';
 	private $cpt_slug          = 'rss-posts';
 	private $tax_slug          = 'rss-feed-links';
 	private $rss_category_slug = 'rss-category';
@@ -144,7 +144,9 @@ class RSS_Post_Aggregator {
 		register_activation_hook( __FILE__, array( $this, '_activate' ) );
 		register_deactivation_hook( __FILE__, array( $this, '_deactivate' ) );
 		add_action( 'init', array( $this, 'init' ) );
+		add_action( 'init', array( $this, 'maybe_schedule_cron' ) );
 		add_action( 'admin_init', array( $this, 'admin_hooks' ) );
+		add_action( 'wds_rss_post_aggregator_cron_import', array( $this->modal, 'import_all_feeds' ) );
 
 		$this->rsscpt->hooks();
 		$this->taxonomy->hooks();
@@ -160,6 +162,8 @@ class RSS_Post_Aggregator {
 		// Make sure any rewrite functionality has been loaded
 		flush_rewrite_rules();
 		add_option( 'wds_rss_aggregate_saved_feed_urls', array(), '', 'no' );
+
+		$this->maybe_schedule_cron();
 	}
 
 	/**
@@ -167,7 +171,18 @@ class RSS_Post_Aggregator {
 	 * Uninstall routines should be in uninstall.php
 	 */
 	function _deactivate() {
+		wp_clear_scheduled_hook( 'wds_rss_post_aggregator_cron_import' );
+	}
 
+	/**
+	 * Ensure the scheduled feed import event exists.
+	 *
+	 * @since 0.2.4
+	 */
+	public function maybe_schedule_cron() {
+		if ( ! wp_next_scheduled( 'wds_rss_post_aggregator_cron_import' ) ) {
+			wp_schedule_event( time() + HOUR_IN_SECONDS, 'hourly', 'wds_rss_post_aggregator_cron_import' );
+		}
 	}
 
 	/**

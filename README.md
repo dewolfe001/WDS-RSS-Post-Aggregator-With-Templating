@@ -3,7 +3,7 @@
 **Tags:**              post import, feed import, rss import, rss aggregator
 **Requires at least:** 6.0
 **Tested up to:**      7.0
-**Stable tag:**        0.2.3
+**Stable tag:**        0.2.4
 **License:**           GPLv2 or later
 **License URI:**       http://www.gnu.org/licenses/gpl-2.0.html
 **Requires PHP:**       8.3
@@ -37,6 +37,8 @@ Imported RSS Post permalinks now open the local WordPress entry by default so vi
 
 Use the Featured image panel on each imported RSS Post to upload or replace the per-entry podcast title image. Re-importing an existing item will not overwrite a manually selected Featured image.
 
+Feed links can be configured for automatic hourly imports from the RSS Feed Links taxonomy screen. Each feed can import into RSS Posts or another public post type, and existing imported items are skipped instead of updated so manually edited content remains untouched.
+
 You may also want to access the category information, which is housed in the `rss-category` taxonomy.  'Rss Feed Links' are housed in the `rss-feed-links` taxonomy as well.
 
 ## Frequently Asked Questions ##
@@ -63,6 +65,11 @@ Post Edit Screen - Manually set RSS feed link.
 
 
 ## Changelog ##
+
+### 0.2.4 ###
+* Add hourly scheduled imports for configured feeds, with per-feed destination post type settings.
+* Skip previously imported feed items without updating existing posts.
+* Add AJAX nonce/capability checks for manual imports.
 
 ### 0.2.3 ###
 * Capture requested RSS item fields, including iTunes podcast metadata, content, enclosure attributes, GUID attributes, and publication date, as post meta during import.

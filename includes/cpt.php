@@ -300,9 +300,10 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 		}
 
 		$post_timestamp = $this->get_import_timestamp( $post_data );
+		$settings       = new RSS_Post_Aggregator_Settings();
 
 		$args = array(
-			'post_content'  => wp_kses_post( stripslashes( $post_data['summary'] ) ),
+			'post_content'  => wp_kses_post( stripslashes( $settings->render_post_content( $post_data ) ) ),
 			'post_title'    => esc_html( stripslashes( $post_data['title'] ) ),
 			'post_status'   => 'draft',
 			'post_type'     => $post_type,
@@ -327,6 +328,7 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 				'post_id'           => $post_id,
 				'original_url'      => update_post_meta( $post_id, $this->prefix . 'original_url', esc_url_raw( $post_data['link'] ) ),
 				'audio_url'         => $audio_url,
+				'import_post_type'  => update_post_meta( $post_id, $this->prefix . 'import_post_type', $post_type ),
 				'rss_item_meta'     => $rss_item_meta,
 				'img_src'           => has_post_thumbnail( $post_id ) ? wp_get_attachment_url( get_post_thumbnail_id( $post_id ) ) : $this->sideload_featured_image( isset( $post_data['image'] ) ? esc_url_raw( $post_data['image'] ) : '', $post_id ),
 				'wp_set_post_terms' => taxonomy_exists( $this->tax_slug ) ? wp_set_post_terms( $post_id, array( $feed_id ), $this->tax_slug, true ) : false,

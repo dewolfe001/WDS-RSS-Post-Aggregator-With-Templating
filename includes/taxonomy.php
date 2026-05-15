@@ -28,6 +28,13 @@ class RSS_Post_Aggregator_Taxonomy extends Taxonomy_Core {
 	const META_TARGET_POST_TYPE = '_rsspost_target_post_type';
 
 	/**
+	 * Term meta key for the canonical feed URL.
+	 *
+	 * @since 0.2.7
+	 */
+	const META_FEED_URL = '_rsspost_feed_url';
+
+	/**
 	 * Default import target post type.
 	 *
 	 * @since 0.2.4

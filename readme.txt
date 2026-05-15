@@ -3,7 +3,7 @@ Contributors:      jtsternberg, dewolfe001
 Tags:              post import, feed import, rss import, rss aggregator
 Requires at least: 6.0
 Tested up to:      7.0
-Stable tag:        0.2.4
+Stable tag:        0.2.5
 License:           GPLv2 or later
 License URI:       http://www.gnu.org/licenses/gpl-2.0.html
 Requires PHP:      8.3
@@ -39,7 +39,7 @@ Imported RSS Post permalinks now open the local WordPress entry by default so vi
 
 Use the Featured image panel on each imported RSS Post to upload or replace the per-entry podcast title image. Re-importing an existing item will not overwrite a manually selected Featured image.
 
-Feed links can be configured for automatic hourly imports from the RSS Feed Links taxonomy screen. Each feed can import into RSS Posts or another public post type, and existing imported items are skipped instead of updated so manually edited content remains untouched.
+Feed links can be configured for automatic hourly imports from the RSS Feed Links taxonomy screen. Each feed can import into RSS Posts or another public post type, and existing imported items are skipped instead of updated so manually edited content remains untouched. The RSS Posts > Settings screen documents the available template tokens and controls the post content template used for new imports.
 
 == Frequently Asked Questions ==
 [Open A Ticket](https://github.com/WebDevStudios/WDS-RSS-Post-Aggregator/issues)
@@ -55,6 +55,10 @@ Feed links can be configured for automatic hourly imports from the RSS Feed Link
 5. Post Edit Screen - Manually set RSS feed link
 
 == Changelog ==
+
+= 0.2.5 =
+* Add an RSS Posts settings page with import template documentation and a configurable post content template.
+* Register RSS Feed Links for all importable post types so per-feed destination post type selections are honored when terms are assigned during import.
 
 = 0.2.4 =
 * Add hourly scheduled imports for configured feeds, with per-feed destination post type settings.

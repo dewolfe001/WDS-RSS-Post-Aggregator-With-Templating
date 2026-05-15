@@ -3,7 +3,7 @@
  * Plugin Name: RSS Post Aggregator
  * Plugin URI:  http://webdevstudios.com
  * Description: Aggregate posts from RSS Feeds
- * Version:     0.2.4
+ * Version:     0.2.5
  * Author:      WebDevStudios, Justin Sternberg
  * Author URI:  http://webdevstudios.com
  * Donate link: https://paypal.me/web321co
@@ -68,7 +68,7 @@ spl_autoload_register( __NAMESPACE__ . '\rss_post_aggregator_autoload_classes' )
  */
 class RSS_Post_Aggregator {
 
-	const VERSION = '0.2.4';
+	const VERSION = '0.2.5';
 	private $cpt_slug          = 'rss-posts';
 	private $tax_slug          = 'rss-feed-links';
 	private $rss_category_slug = 'rss-category';
@@ -104,6 +104,11 @@ class RSS_Post_Aggregator {
 	public $widgets;
 
 	/**
+	 * @var RSS_Post_Aggregator_Settings
+	 */
+	public $settings;
+
+	/**
 	 * @var Taxonomy_Core
 	 */
 	public $rss_category;
@@ -127,6 +132,7 @@ class RSS_Post_Aggregator {
 		$this->rsscpt   = new RSS_Post_Aggregator_CPT( $this->cpt_slug, $this->tax_slug );
 		$this->taxonomy = new RSS_Post_Aggregator_Taxonomy( $this->tax_slug, $this->rsscpt );
 		$this->rss      = new RSS_Post_Aggregator_Feeds();
+		$this->settings = new RSS_Post_Aggregator_Settings();
 		$this->modal    = new RSS_Post_Aggregator_Modal( $this->rss, $this->rsscpt, $this->taxonomy );
 
 		// Handles frontend modification for aggregate site
@@ -151,6 +157,7 @@ class RSS_Post_Aggregator {
 		$this->rsscpt->hooks();
 		$this->taxonomy->hooks();
 		$this->modal->hooks();
+		$this->settings->hooks();
 		$this->frontend->hooks();
 		$this->widgets->hooks();
 	}

@@ -37,7 +37,7 @@ Imported RSS Post permalinks now open the local WordPress entry by default so vi
 
 Use the Featured image panel on each imported RSS Post to upload or replace the per-entry podcast title image. Re-importing an existing item will not overwrite a manually selected Featured image.
 
-Feed links can be configured for automatic hourly imports from the RSS Feed Links taxonomy screen. Each feed can import into RSS Posts or another public post type, and existing imported items are skipped instead of updated so manually edited content remains untouched.
+Feed links can be configured for automatic hourly imports from the RSS Feed Links taxonomy screen. Each feed can import into RSS Posts or another public post type, and existing imported items are skipped instead of updated so manually edited content remains untouched. The RSS Posts > Settings screen documents the available template tokens and controls the post content template used for new imports.
 
 You may also want to access the category information, which is housed in the `rss-category` taxonomy.  'Rss Feed Links' are housed in the `rss-feed-links` taxonomy as well.
 
@@ -65,6 +65,10 @@ Post Edit Screen - Manually set RSS feed link.
 
 
 ## Changelog ##
+
+### 0.2.5 ###
+* Add an RSS Posts settings page with import template documentation and a configurable post content template.
+* Register RSS Feed Links for all importable post types so per-feed destination post type selections are honored when terms are assigned during import.
 
 ### 0.2.4 ###
 * Add hourly scheduled imports for configured feeds, with per-feed destination post type settings.

@@ -71,7 +71,7 @@ class RSS_Post_Aggregator_Taxonomy extends Taxonomy_Core {
 	 * @since 0.2.4
 	 */
 	public function register_taxonomy_for_feed_post_types() {
-		foreach ( $this->get_selected_target_post_types() as $post_type ) {
+		foreach ( $this->get_importable_post_types() as $post_type ) {
 			register_taxonomy_for_object_type( $this->taxonomy(), $post_type );
 		}
 	}
@@ -95,6 +95,7 @@ class RSS_Post_Aggregator_Taxonomy extends Taxonomy_Core {
 			<label for="rss-target-post-type"><?php esc_html_e( 'Import as post type', 'wds-rss-post-aggregator' ); ?></label>
 			<?php $this->render_post_type_select( $this->default_post_type ); ?>
 			<p><?php esc_html_e( 'Choose the WordPress post type created by scheduled imports for this feed.', 'wds-rss-post-aggregator' ); ?></p>
+			<?php $this->render_template_settings_link(); ?>
 		</div>
 		<?php
 	}
@@ -125,8 +126,28 @@ class RSS_Post_Aggregator_Taxonomy extends Taxonomy_Core {
 			<td>
 				<?php $this->render_post_type_select( $target_post_type ); ?>
 				<p class="description"><?php esc_html_e( 'Choose the WordPress post type created by scheduled imports for this feed.', 'wds-rss-post-aggregator' ); ?></p>
+				<?php $this->render_template_settings_link( 'description' ); ?>
 			</td>
 		</tr>
+		<?php
+	}
+
+
+	/**
+	 * Render a link to the import template settings page.
+	 *
+	 * @since 0.2.5
+	 *
+	 * @param string $class Optional paragraph class.
+	 */
+	protected function render_template_settings_link( $class = '' ) {
+		$settings_url = admin_url( 'edit.php?post_type=rss-posts&page=' . RSS_Post_Aggregator_Settings::PAGE_SLUG );
+		$class_attr   = $class ? ' class="' . esc_attr( $class ) . '"' : '';
+		?>
+		<p<?php echo $class_attr; ?>>
+			<?php esc_html_e( 'Need to change imported content?', 'wds-rss-post-aggregator' ); ?>
+			<a href="<?php echo esc_url( $settings_url ); ?>"><?php esc_html_e( 'Open template settings and token documentation.', 'wds-rss-post-aggregator' ); ?></a>
+		</p>
 		<?php
 	}
 
@@ -231,7 +252,7 @@ class RSS_Post_Aggregator_Taxonomy extends Taxonomy_Core {
 	 * @param string $output Output format.
 	 * @return array Post type names or objects.
 	 */
-	protected function get_importable_post_types( $output = 'names' ) {
+	public function get_importable_post_types( $output = 'names' ) {
 		$post_types = get_post_types( array( 'public' => true ), $output );
 
 		if ( 'names' === $output ) {
@@ -241,6 +262,15 @@ class RSS_Post_Aggregator_Taxonomy extends Taxonomy_Core {
 			unset( $post_types['attachment'] );
 		}
 
+		/**
+		 * Filters the post types available as RSS import destinations.
+		 *
+		 * @since 0.2.4
+		 *
+		 * @param array                       $post_types Importable post types.
+		 * @param string                      $output     Output format.
+		 * @param RSS_Post_Aggregator_Taxonomy $taxonomy   Taxonomy instance.
+		 */
 		return apply_filters( 'rss_post_aggregator_importable_post_types', $post_types, $output, $this );
 	}
 

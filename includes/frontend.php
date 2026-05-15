@@ -36,6 +36,7 @@ class RSS_Post_Aggregator_Frontend {
 		add_filter( 'post_link', array( $this, 'post_link' ), 10, 2 );
 		add_filter( 'post_type_link', array( $this, 'post_link' ), 10, 2 );
 		add_filter( 'the_permalink', array( $this, 'get_post_and_post_link' ) );
+		add_filter( 'the_content', array( $this, 'prepend_audio_player' ) );
 	}
 
 	/**
@@ -73,6 +74,35 @@ class RSS_Post_Aggregator_Frontend {
 		$post_types[] = $this->cpt->post_type();
 
 		$query->set( 'post_type', array_values( array_unique( $post_types ) ) );
+	}
+
+	/**
+	 * Prepend the retained podcast audio enclosure to local RSS post detail pages.
+	 *
+	 * @since 0.2.2
+	 *
+	 * @param string $content Post content.
+	 * @return string Content with the audio player when an audio URL exists.
+	 */
+	public function prepend_audio_player( $content ) {
+		if ( ! is_singular( $this->cpt->post_type() ) || ! in_the_loop() || ! is_main_query() ) {
+			return $content;
+		}
+
+		$audio_url = rss_post_get_audio_url();
+		if ( ! $audio_url ) {
+			return $content;
+		}
+
+		$audio = wp_audio_shortcode( array(
+			'src' => $audio_url,
+		) );
+
+		if ( ! $audio ) {
+			return $content;
+		}
+
+		return '<div class="rss-post-audio">' . $audio . '</div>' . $content;
 	}
 
 	/**

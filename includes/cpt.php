@@ -188,13 +188,24 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 	public function render_metabox( $object ) {
 		wp_nonce_field( 'rsslink_mb_metabox', 'rsslink_mb_nonce' );
 
-		$meta       = get_post_meta( $object->ID, $this->prefix . 'original_url', 1 );
-		$meta_value = empty( $meta ) ? '' : esc_url( $meta );
+		$meta        = get_post_meta( $object->ID, $this->prefix . 'original_url', 1 );
+		$audio_url   = get_post_meta( $object->ID, $this->prefix . 'audio_url', 1 );
+		$meta_value  = empty( $meta ) ? '' : esc_url( $meta );
+		$audio_value = empty( $audio_url ) ? '' : esc_url( $audio_url );
 
 		?>
 		<fieldset>
-			<label for="<?php echo $this->prefix; ?>original_url"><?php esc_html_e( 'Original URL', 'wds-rss-post-aggregator' ); ?></label><br />
-			<input name="<?php echo $this->prefix; ?>original_url" id="<?php echo $this->prefix; ?>original_url" value="<?php echo $meta_value; ?>" class="regular-text" />
+			<p>
+				<label for="<?php echo $this->prefix; ?>original_url"><?php esc_html_e( 'Original URL', 'wds-rss-post-aggregator' ); ?></label><br />
+				<input name="<?php echo $this->prefix; ?>original_url" id="<?php echo $this->prefix; ?>original_url" value="<?php echo esc_attr( $meta_value ); ?>" class="regular-text" />
+			</p>
+			<p>
+				<label for="<?php echo $this->prefix; ?>audio_url"><?php esc_html_e( 'Podcast Audio URL', 'wds-rss-post-aggregator' ); ?></label><br />
+				<input name="<?php echo $this->prefix; ?>audio_url" id="<?php echo $this->prefix; ?>audio_url" value="<?php echo esc_attr( $audio_value ); ?>" class="regular-text" />
+				<?php if ( $audio_value ) : ?>
+					<br /><a href="<?php echo esc_url( $audio_value ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Open audio file', 'wds-rss-post-aggregator' ); ?></a>
+				<?php endif; ?>
+			</p>
 		</fieldset>
 		<?php
 	}
@@ -238,9 +249,16 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 			return $post_id;
 		}
 
-		$url = esc_url( wp_unslash( $_POST[ $this->prefix . 'original_url' ] ) );
+		$url       = esc_url_raw( wp_unslash( $_POST[ $this->prefix . 'original_url' ] ) );
+		$audio_url = isset( $_POST[ $this->prefix . 'audio_url' ] ) ? esc_url_raw( wp_unslash( $_POST[ $this->prefix . 'audio_url' ] ) ) : '';
 
 		update_post_meta( $post_id, $this->prefix . 'original_url', $url );
+
+		if ( $audio_url ) {
+			update_post_meta( $post_id, $this->prefix . 'audio_url', $audio_url );
+		} else {
+			delete_post_meta( $post_id, $this->prefix . 'audio_url' );
+		}
 	}
 
 	/**
@@ -272,9 +290,18 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 
 		$post_id = wp_insert_post( $args );
 		if ( $post_id ) {
+			$audio_url = isset( $post_data['audio_url'] ) ? esc_url_raw( $post_data['audio_url'] ) : '';
+
+			if ( $audio_url ) {
+				update_post_meta( $post_id, $this->prefix . 'audio_url', $audio_url );
+			} else {
+				$audio_url = get_post_meta( $post_id, $this->prefix . 'audio_url', true );
+			}
+
 			$report = array(
 				'post_id'           => $post_id,
 				'original_url'      => update_post_meta( $post_id, $this->prefix . 'original_url', esc_url_raw( $post_data['link'] ) ),
+				'audio_url'         => $audio_url,
 				'img_src'           => has_post_thumbnail( $post_id ) ? wp_get_attachment_url( get_post_thumbnail_id( $post_id ) ) : $this->sideload_featured_image( isset( $post_data['image'] ) ? esc_url_raw( $post_data['image'] ) : '', $post_id ),
 				'wp_set_post_terms' => wp_set_post_terms( $post_id, array( $feed_id ), $this->tax_slug, true ),
 			);
@@ -359,6 +386,31 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 	}
 }
 
+
+
+/**
+ * Get imported podcast audio URL.
+ *
+ * @since 0.2.2
+ *
+ * @param bool|\WP_Post|int $post Optional post object or ID.
+ * @return string Audio URL.
+ */
+function rss_post_get_audio_url( $post = false ) {
+	global $RSS_Post_Aggregator;
+
+	if ( ! $post ) {
+		$post = get_post( get_the_ID() );
+	} else {
+		$post = $post && is_int( $post ) ? get_post( $post ) : $post;
+	}
+
+	if ( ! isset( $post->ID ) || empty( $RSS_Post_Aggregator->rsscpt ) ) {
+		return '';
+	}
+
+	return esc_url( get_post_meta( $post->ID, $RSS_Post_Aggregator->rsscpt->prefix . 'audio_url', true ) );
+}
 
 /**
  * Find an imported RSS post by its original feed item URL.

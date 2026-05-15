@@ -3,7 +3,7 @@
 **Tags:**              post import, feed import, rss import, rss aggregator
 **Requires at least:** 6.0
 **Tested up to:**      7.0
-**Stable tag:**        0.2.1
+**Stable tag:**        0.2.2
 **License:**           GPLv2 or later
 **License URI:**       http://www.gnu.org/licenses/gpl-2.0.html
 **Requires PHP:**       8.3
@@ -32,7 +32,7 @@ With RSS Post Aggregator, the following is pulled in during the import process:
 ### Dev Documentation ###
 Imported RSS Posts are automatically included with regular posts on the main blog/home query so the newest podcast/blog entries can appear on the initial posts screen. To disable that behavior, return `false` from the `rss_post_aggregator_include_rss_posts_on_home` filter.
 
-Imported RSS Post permalinks now open the local WordPress entry by default so visitors can read the editable description/content page. To restore the older behavior of sending RSS Post links directly to the source URL, return `true` from the `rss_post_aggregator_link_to_original_url` filter.
+Imported RSS Post permalinks now open the local WordPress entry by default so visitors can read the editable description/content page. Podcast audio enclosure URLs are saved in the RSS Item Info box as `Podcast Audio URL` and are displayed with a WordPress audio player on the local detail page when available. To restore the older behavior of sending RSS Post links directly to the source URL, return `true` from the `rss_post_aggregator_link_to_original_url` filter.
 
 Use the Featured image panel on each imported RSS Post to upload or replace the per-entry podcast title image. Re-importing an existing item will not overwrite a manually selected Featured image.
 
@@ -62,6 +62,9 @@ Post Edit Screen - Manually set RSS feed link.
 
 
 ## Changelog ##
+
+### 0.2.2 ###
+* Retain podcast audio enclosure URLs during import, expose them in the RSS Item Info metabox, and show a WordPress audio player on local detail pages.
 
 ### 0.2.1 ###
 * Include imported RSS Posts in the main blog/home query so the newest imported podcast entries can appear on the initial posts screen.

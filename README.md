@@ -9,7 +9,7 @@
 **Requires PHP:**       8.3
 **Donate link:**        [Donate to Web321 via PayPal](https://paypal.me/web321co)
 
-Allows you to selectively import posts to your WordPress installation from RSS Feeds and save them locally so they're never lost. If this plugin helps you, please consider [donating to Web321 via PayPal](https://paypal.me/web321).
+Allows you to selectively import posts to your WordPress installation from RSS Feeds and save them locally so they're never lost. If this plugin helps you, please consider [donating to Web321 via PayPal](https://paypal.me/web321co).
 
 ## Description ##
 

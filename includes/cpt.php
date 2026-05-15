@@ -188,10 +188,11 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 	public function render_metabox( $object ) {
 		wp_nonce_field( 'rsslink_mb_metabox', 'rsslink_mb_nonce' );
 
-		$meta        = get_post_meta( $object->ID, $this->prefix . 'original_url', 1 );
-		$audio_url   = get_post_meta( $object->ID, $this->prefix . 'audio_url', 1 );
-		$meta_value  = empty( $meta ) ? '' : esc_url( $meta );
-		$audio_value = empty( $audio_url ) ? '' : esc_url( $audio_url );
+		$meta          = get_post_meta( $object->ID, $this->prefix . 'original_url', 1 );
+		$audio_url     = get_post_meta( $object->ID, $this->prefix . 'audio_url', 1 );
+		$rss_item_meta = get_post_meta( $object->ID, $this->prefix . 'rss_item_fields', true );
+		$meta_value    = empty( $meta ) ? '' : esc_url( $meta );
+		$audio_value   = empty( $audio_url ) ? '' : esc_url( $audio_url );
 
 		?>
 		<fieldset>
@@ -207,6 +208,21 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 				<?php endif; ?>
 			</p>
 		</fieldset>
+		<?php if ( ! empty( $rss_item_meta ) && is_array( $rss_item_meta ) ) : ?>
+			<hr />
+			<h4><?php esc_html_e( 'Retained RSS Item Fields', 'wds-rss-post-aggregator' ); ?></h4>
+			<p><?php esc_html_e( 'These custom fields were captured from the original RSS item during import.', 'wds-rss-post-aggregator' ); ?></p>
+			<table class="widefat striped">
+				<tbody>
+					<?php foreach ( $rss_item_meta as $field_key => $field_value ) : ?>
+						<tr>
+							<th scope="row"><?php echo esc_html( $field_key ); ?></th>
+							<td><code><?php echo esc_html( $this->format_meta_field_for_display( $field_value ) ); ?></code></td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+		<?php endif; ?>
 		<?php
 	}
 
@@ -273,13 +289,15 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 	 * @return array|string
 	 */
 	public function insert( $post_data, $feed_id ) {
+		$post_timestamp = $this->get_import_timestamp( $post_data );
+
 		$args = array(
 			'post_content'  => wp_kses_post( stripslashes( $post_data['summary'] ) ),
 			'post_title'    => esc_html( stripslashes( $post_data['title'] ) ),
 			'post_status'   => 'draft',
 			'post_type'     => $this->post_type(),
-			'post_date'     => date( 'Y-m-d H:i:s', strtotime( $post_data['date'] ) ),
-			'post_date_gmt' => gmdate( 'Y-m-d H:i:s', strtotime( $post_data['date'] ) ),
+			'post_date'     => date( 'Y-m-d H:i:s', $post_timestamp ),
+			'post_date_gmt' => gmdate( 'Y-m-d H:i:s', $post_timestamp ),
 		);
 
 		$existing_post = $this->post_exists( $post_data['link'] );
@@ -290,7 +308,8 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 
 		$post_id = wp_insert_post( $args );
 		if ( $post_id ) {
-			$audio_url = isset( $post_data['audio_url'] ) ? esc_url_raw( $post_data['audio_url'] ) : '';
+			$audio_url     = isset( $post_data['audio_url'] ) ? esc_url_raw( $post_data['audio_url'] ) : '';
+			$rss_item_meta = isset( $post_data['rss_item_meta'] ) && is_array( $post_data['rss_item_meta'] ) ? $post_data['rss_item_meta'] : array();
 
 			if ( $audio_url ) {
 				update_post_meta( $post_id, $this->prefix . 'audio_url', $audio_url );
@@ -298,10 +317,13 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 				$audio_url = get_post_meta( $post_id, $this->prefix . 'audio_url', true );
 			}
 
+			$this->save_rss_item_meta( $post_id, $rss_item_meta );
+
 			$report = array(
 				'post_id'           => $post_id,
 				'original_url'      => update_post_meta( $post_id, $this->prefix . 'original_url', esc_url_raw( $post_data['link'] ) ),
 				'audio_url'         => $audio_url,
+				'rss_item_meta'     => $rss_item_meta,
 				'img_src'           => has_post_thumbnail( $post_id ) ? wp_get_attachment_url( get_post_thumbnail_id( $post_id ) ) : $this->sideload_featured_image( isset( $post_data['image'] ) ? esc_url_raw( $post_data['image'] ) : '', $post_id ),
 				'wp_set_post_terms' => wp_set_post_terms( $post_id, array( $feed_id ), $this->tax_slug, true ),
 			);
@@ -310,6 +332,92 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 		}
 
 		return $report;
+	}
+
+
+	/**
+	 * Save retained RSS item fields as post meta.
+	 *
+	 * @since 0.2.3
+	 *
+	 * @param int   $post_id       Imported post ID.
+	 * @param array $rss_item_meta Retained RSS item meta.
+	 */
+	public function save_rss_item_meta( $post_id, $rss_item_meta ) {
+		if ( empty( $post_id ) || empty( $rss_item_meta ) || ! is_array( $rss_item_meta ) ) {
+			return;
+		}
+
+		$meta = $this->sanitize_rss_item_meta( $rss_item_meta );
+
+		update_post_meta( $post_id, $this->prefix . 'rss_item_fields', $meta );
+
+		foreach ( $meta as $field_key => $field_value ) {
+			update_post_meta( $post_id, $this->prefix . 'rss_item_' . sanitize_key( $field_key ), $field_value );
+		}
+	}
+
+	/**
+	 * Sanitize retained RSS item meta before storing it.
+	 *
+	 * @since 0.2.3
+	 *
+	 * @param array $rss_item_meta Retained RSS item meta.
+	 * @return array Sanitized RSS item meta.
+	 */
+	protected function sanitize_rss_item_meta( $rss_item_meta ) {
+		$sanitized = array();
+
+		foreach ( $rss_item_meta as $field_key => $field_value ) {
+			$field_key = sanitize_key( $field_key );
+
+			if ( is_array( $field_value ) ) {
+				$sanitized[ $field_key ] = $this->sanitize_rss_item_meta( $field_value );
+				continue;
+			}
+
+			$sanitized[ $field_key ] = is_scalar( $field_value ) ? wp_kses_post( (string) $field_value ) : '';
+		}
+
+		return $sanitized;
+	}
+
+	/**
+	 * Format a retained RSS item meta field for display in the metabox.
+	 *
+	 * @since 0.2.3
+	 *
+	 * @param mixed $field_value Retained field value.
+	 * @return string Display value.
+	 */
+	protected function format_meta_field_for_display( $field_value ) {
+		if ( is_array( $field_value ) ) {
+			return wp_json_encode( $field_value );
+		}
+
+		return (string) $field_value;
+	}
+
+	/**
+	 * Get the timestamp to use for imported post dates.
+	 *
+	 * @since 0.2.3
+	 *
+	 * @param array $post_data Incoming RSS item data.
+	 * @return int Unix timestamp.
+	 */
+	protected function get_import_timestamp( $post_data ) {
+		$raw_date = '';
+
+		if ( ! empty( $post_data['rss_item_meta']['pub_date'] ) ) {
+			$raw_date = $post_data['rss_item_meta']['pub_date'];
+		} elseif ( ! empty( $post_data['date'] ) ) {
+			$raw_date = $post_data['date'];
+		}
+
+		$timestamp = $raw_date ? strtotime( $raw_date ) : false;
+
+		return $timestamp ? $timestamp : current_time( 'timestamp' );
 	}
 
 	/**

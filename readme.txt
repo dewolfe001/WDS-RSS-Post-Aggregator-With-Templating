@@ -7,13 +7,13 @@ Stable tag:        0.2.3
 License:           GPLv2 or later
 License URI:       http://www.gnu.org/licenses/gpl-2.0.html
 Requires PHP:      8.3
-Donate link:       https://paypal.me/web321
+Donate link:       https://paypal.me/web321co
 
 Aggregate posts from RSS Feeds
 
 == Description ==
 
-This project is hosted on [GitHub](http://github.com) feel free to [fork it and contribute](https://github.com/WebDevStudios/WDS-RSS-Post-Aggregator). If this plugin helps you, please consider [donating to Web321 via PayPal](https://paypal.me/web321).
+This project is hosted on [GitHub](http://github.com) feel free to [fork it and contribute](https://github.com/WebDevStudios/WDS-RSS-Post-Aggregator). If this plugin helps you, please consider [donating to Web321 via PayPal](https://paypal.me/web321co).
 
 WDS RSS Post Aggregator provides site owners the ability to selectively import RSS posts to their blog using WordPress' built in post selection interface.  Once a feed is selected and a post is imported, the excerpt, title, and all the usual things you would expect are editable.  You can even categorize and tag the posts in their own taxonomies.
 

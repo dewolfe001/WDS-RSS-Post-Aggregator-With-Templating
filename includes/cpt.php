@@ -304,7 +304,7 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 
 		$args = array(
 			'post_content'  => wp_kses_post( stripslashes( $settings->render_post_content( $post_data ) ) ),
-			'post_title'    => esc_html( stripslashes( $post_data['title'] ) ),
+			'post_title'    => esc_html( RSS_Post_Aggregator::decode_entities( stripslashes( $post_data['title'] ) ) ),
 			'post_status'   => 'draft',
 			'post_type'     => $post_type,
 			'post_date'     => date( 'Y-m-d H:i:s', $post_timestamp ),
@@ -384,7 +384,7 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 				continue;
 			}
 
-			$sanitized[ $field_key ] = is_scalar( $field_value ) ? wp_kses_post( (string) $field_value ) : '';
+			$sanitized[ $field_key ] = is_scalar( $field_value ) ? wp_kses_post( RSS_Post_Aggregator::decode_entities( $field_value ) ) : '';
 		}
 
 		return $sanitized;

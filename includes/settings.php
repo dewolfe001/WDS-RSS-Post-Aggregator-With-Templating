@@ -298,7 +298,7 @@ class RSS_Post_Aggregator_Settings {
 				continue;
 			}
 
-			$values[ $token ] = (string) $value;
+			$values[ $token ] = RSS_Post_Aggregator::decode_entities( $value );
 		}
 
 		return apply_filters( 'rss_post_aggregator_template_values', $values, $post_data, $this );

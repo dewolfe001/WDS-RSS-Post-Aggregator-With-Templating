@@ -94,7 +94,7 @@ class RSS_Post_Aggregator_Modal {
 		}
 
 		$summary = $this->summarize_import_results( array(
-			$feed_id => $this->import_feed( $feed->name, $feed_id ),
+			$feed_id => $this->import_feed( $this->get_feed_url( $feed ), $feed_id ),
 		) );
 
 		$this->redirect_after_manual_import( $summary );
@@ -318,7 +318,7 @@ class RSS_Post_Aggregator_Modal {
 				continue;
 			}
 
-			$results[ $feed->term_id ] = $this->import_feed( $feed->name, $feed->term_id );
+			$results[ $feed->term_id ] = $this->import_feed( $this->get_feed_url( $feed ), $feed->term_id );
 		}
 
 		return $results;
@@ -334,7 +334,13 @@ class RSS_Post_Aggregator_Modal {
 	 * @return array|\WP_Error Import result.
 	 */
 	public function import_feed( $feed_url, $feed_id ) {
-		$feed_items = $this->rss->get_items( esc_url_raw( $feed_url ), array(
+		$feed_url = $this->normalize_feed_url( $feed_url );
+
+		if ( ! $feed_url ) {
+			return new \WP_Error( 'rss_post_aggregator_invalid_feed_url', __( 'The saved RSS feed URL is invalid. Edit the feed link and enter the full RSS URL, including https://.', 'wds-rss-post-aggregator' ) );
+		}
+
+		$feed_items = $this->rss->get_items( $feed_url, array(
 			'show_author'  => true,
 			'show_date'    => true,
 			'show_summary' => true,
@@ -345,6 +351,10 @@ class RSS_Post_Aggregator_Modal {
 
 		if ( isset( $feed_items['error'] ) ) {
 			return new \WP_Error( 'rss_post_aggregator_feed_error', $feed_items['error'] );
+		}
+
+		if ( empty( $feed_items ) ) {
+			return new \WP_Error( 'rss_post_aggregator_empty_feed', __( 'The feed returned no importable items.', 'wds-rss-post-aggregator' ) );
 		}
 
 		return $this->save_posts( $feed_items, $feed_id, $this->tax->get_target_post_type( $feed_id ) );
@@ -367,8 +377,12 @@ class RSS_Post_Aggregator_Modal {
 			}
 		}
 
-		$feed_url = esc_url( $_REQUEST['feed_url'] );
+		$feed_url = $this->normalize_feed_url( wp_unslash( $_REQUEST['feed_url'] ) );
 		$feed_id  = absint( $_REQUEST['feed_id'] );
+
+		if ( ! $feed_url ) {
+			wp_send_json_error( __( 'Please enter a valid RSS feed URL, including https://.', 'wds-rss-post-aggregator' ) );
+		}
 
 		if ( ! $feed_id ) {
 			$feed_id = $this->ensure_feed_term( $feed_url );
@@ -378,7 +392,7 @@ class RSS_Post_Aggregator_Modal {
 			wp_send_json_error( __( 'There was an error with the RSS feed link creation.', 'wds-rss-post-aggregator' ) );
 		}
 
-		$feed_items = $this->rss->get_items( esc_url( $_REQUEST['feed_url'] ), array(
+		$feed_items = $this->rss->get_items( $feed_url, array(
 			'show_author'  => true,
 			'show_date'    => true,
 			'show_summary' => true,
@@ -394,6 +408,106 @@ class RSS_Post_Aggregator_Modal {
 	}
 
 	/**
+	 * Get the best available URL for a saved feed term.
+	 *
+	 * @since 0.2.7
+	 *
+	 * @param \WP_Term $feed Feed term.
+	 * @return string Feed URL.
+	 */
+	protected function get_feed_url( $feed ) {
+		$feed_url = get_term_meta( $feed->term_id, RSS_Post_Aggregator_Taxonomy::META_FEED_URL, true );
+		$feed_url = $feed_url ? $feed_url : $feed->name;
+		$feed_url = $this->normalize_feed_url( $feed_url );
+
+		if ( $feed_url ) {
+			update_term_meta( $feed->term_id, RSS_Post_Aggregator_Taxonomy::META_FEED_URL, esc_url_raw( $feed_url ) );
+		}
+
+		return $feed_url;
+	}
+
+	/**
+	 * Normalize saved feed input into a usable URL.
+	 *
+	 * Also repairs WordPress term slugs that were pasted into the feed name field,
+	 * such as https-rss-buzzsprout-com-1603417-rss.
+	 *
+	 * @since 0.2.7
+	 *
+	 * @param string $feed_url Feed URL or URL-like term slug.
+	 * @return string Valid feed URL, or an empty string when it cannot be normalized.
+	 */
+	protected function normalize_feed_url( $feed_url ) {
+		$raw_feed_url = trim( (string) $feed_url );
+
+		if ( preg_match( '/^https?-/', $raw_feed_url ) ) {
+			$rebuilt_url = $this->url_from_term_slug( $raw_feed_url );
+
+			if ( $rebuilt_url ) {
+				return $rebuilt_url;
+			}
+		}
+
+		$feed_url = esc_url_raw( $raw_feed_url );
+		$parts    = $feed_url ? wp_parse_url( $feed_url ) : array();
+
+		if (
+			! empty( $parts['scheme'] )
+			&& ! empty( $parts['host'] )
+			&& in_array( strtolower( $parts['scheme'] ), array( 'http', 'https' ), true )
+		) {
+			return $feed_url;
+		}
+
+		return '';
+	}
+
+	/**
+	 * Convert a URL-like WordPress term slug back into a URL.
+	 *
+	 * @since 0.2.7
+	 *
+	 * @param string $feed_slug URL-like feed slug.
+	 * @return string Rebuilt URL, or an empty string.
+	 */
+	protected function url_from_term_slug( $feed_slug ) {
+		$feed_slug = sanitize_title( $feed_slug );
+
+		if ( ! preg_match( '/^(https?)-(.+)$/', $feed_slug, $matches ) ) {
+			return '';
+		}
+
+		$parts = explode( '-', $matches[2] );
+		$tlds  = array( 'com', 'org', 'net', 'edu', 'gov', 'io', 'co', 'us', 'fm', 'info', 'biz', 'tv' );
+		$host  = array();
+		$path  = array();
+
+		foreach ( $parts as $part ) {
+			$host[] = $part;
+
+			if ( in_array( $part, $tlds, true ) ) {
+				$path = array_slice( $parts, count( $host ) );
+				break;
+			}
+		}
+
+		if ( empty( $path ) ) {
+			return '';
+		}
+
+		$last = end( $path );
+		if ( in_array( $last, array( 'rss', 'xml', 'atom', 'json' ), true ) && count( $path ) > 1 ) {
+			array_pop( $path );
+			$path[ count( $path ) - 1 ] .= '.' . $last;
+		}
+
+		$url = $matches[1] . '://' . implode( '.', $host ) . '/' . implode( '/', $path );
+
+		return esc_url_raw( $url );
+	}
+
+	/**
 	 * Ensure a feed URL has a term and default import settings.
 	 *
 	 * @since 0.2.4
@@ -402,9 +516,16 @@ class RSS_Post_Aggregator_Modal {
 	 * @return int|false Feed term ID, or false on failure.
 	 */
 	protected function ensure_feed_term( $feed_url ) {
+		$feed_url = $this->normalize_feed_url( $feed_url );
+
+		if ( ! $feed_url ) {
+			return false;
+		}
+
 		$link = get_term_by( 'name', $feed_url, $this->tax->taxonomy() );
 
 		if ( $link ) {
+			update_term_meta( $link->term_id, RSS_Post_Aggregator_Taxonomy::META_FEED_URL, esc_url_raw( $feed_url ) );
 			return (int) $link->term_id;
 		}
 
@@ -414,6 +535,7 @@ class RSS_Post_Aggregator_Modal {
 		}
 
 		update_term_meta( $link['term_id'], RSS_Post_Aggregator_Taxonomy::META_AUTO_IMPORT, '1' );
+		update_term_meta( $link['term_id'], RSS_Post_Aggregator_Taxonomy::META_FEED_URL, esc_url_raw( $feed_url ) );
 
 		return (int) $link['term_id'];
 	}
@@ -478,7 +600,7 @@ class RSS_Post_Aggregator_Modal {
 
 		if ( $feed_links && is_array( $feed_links ) ) {
 			foreach ( $feed_links as $link ) {
-				$this->feed_links[ $link->term_id ] = esc_url( $link->name );
+				$this->feed_links[ $link->term_id ] = esc_url( $this->get_feed_url( $link ) );
 			}
 		}
 

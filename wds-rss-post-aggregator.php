@@ -6,7 +6,7 @@
  * Version:     0.2.3
  * Author:      WebDevStudios, Justin Sternberg
  * Author URI:  http://webdevstudios.com
- * Donate link: https://paypal.me/web321
+ * Donate link: https://paypal.me/web321co
  * License:     GPLv2+
  * Requires at least: 6.0
  * Requires PHP: 8.3

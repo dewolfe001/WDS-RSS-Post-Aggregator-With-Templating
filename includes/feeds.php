@@ -182,7 +182,7 @@ class RSS_Post_Aggregator_Feeds {
 	 * @return string
 	 */
 	public function get_title() {
-		$title = esc_html( trim( strip_tags( (string) $this->item->get_title() ) ) );
+		$title = esc_html( trim( strip_tags( RSS_Post_Aggregator::decode_entities( $this->item->get_title() ) ) ) );
 		if ( empty( $title ) ) {
 			$title = __( 'Untitled', 'wds-rss-post-aggregator' );
 		}
@@ -416,7 +416,7 @@ class RSS_Post_Aggregator_Feeds {
 	 * @return string Sanitized value.
 	 */
 	protected function sanitize_meta_value( $value, $allow_html = false ) {
-		$value = html_entity_decode( (string) $value, ENT_QUOTES, get_option( 'blog_charset' ) );
+		$value = RSS_Post_Aggregator::decode_entities( $value );
 		$value = trim( $value );
 
 		return $allow_html ? wp_kses_post( $value ) : sanitize_text_field( $value );
@@ -448,7 +448,7 @@ class RSS_Post_Aggregator_Feeds {
 	public function get_author() {
 		$author = $this->item->get_author();
 		$author = ( ( $author ) && is_object( $author ) )
-			? esc_html( strip_tags( $author->get_name() ) )
+			? esc_html( strip_tags( RSS_Post_Aggregator::decode_entities( $author->get_name() ) ) )
 			: '';
 
 		return apply_filters( 'rss_post_aggregator_feed_author', $author, $this->rss_link, $this );
@@ -462,7 +462,7 @@ class RSS_Post_Aggregator_Feeds {
 	 * @return string Feed item summary.
 	 */
 	public function get_summary() {
-		$summary = html_entity_decode( (string) $this->item->get_description(), ENT_QUOTES, get_option( 'blog_charset' ) );
+		$summary = RSS_Post_Aggregator::decode_entities( $this->item->get_description() );
 
 		$length = (int) apply_filters( 'rss_post_aggregator_feed_summary_length', 100, $this->rss_link, $this );
 

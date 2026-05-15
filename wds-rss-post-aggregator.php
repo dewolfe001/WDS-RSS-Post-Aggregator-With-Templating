@@ -3,7 +3,7 @@
  * Plugin Name: RSS Post Aggregator
  * Plugin URI:  http://webdevstudios.com
  * Description: Aggregate posts from RSS Feeds
- * Version:     0.2.8
+ * Version:     0.2.9
  * Author:      WebDevStudios, Justin Sternberg
  * Author URI:  http://webdevstudios.com
  * Donate link: https://paypal.me/web321co
@@ -68,7 +68,7 @@ spl_autoload_register( __NAMESPACE__ . '\rss_post_aggregator_autoload_classes' )
  */
 class RSS_Post_Aggregator {
 
-	const VERSION = '0.2.8';
+	const VERSION = '0.2.9';
 	private $cpt_slug          = 'rss-posts';
 	private $tax_slug          = 'rss-feed-links';
 	private $rss_category_slug = 'rss-category';
@@ -209,6 +209,43 @@ class RSS_Post_Aggregator {
 	 * @return null
 	 */
 	public function admin_hooks() {
+	}
+
+
+	/**
+	 * Decode HTML/XML entities found in RSS feed data.
+	 *
+	 * Feed providers sometimes send HTML5/XML entities (for example &apos;) or
+	 * double-encoded entities (for example &amp;apos;). Decode a few times so the
+	 * importer stores readable characters while leaving final sanitization to
+	 * the context where the value is used.
+	 *
+	 * @since 0.2.9
+	 *
+	 * @param mixed $value Value to decode.
+	 * @return string Decoded value.
+	 */
+	public static function decode_entities( $value ) {
+		$charset = function_exists( 'get_option' ) ? get_option( 'blog_charset' ) : 'UTF-8';
+		$charset = $charset ? $charset : 'UTF-8';
+		$decoded = (string) $value;
+		$flags   = ENT_QUOTES | ENT_HTML5;
+
+		if ( defined( 'ENT_SUBSTITUTE' ) ) {
+			$flags |= ENT_SUBSTITUTE;
+		}
+
+		for ( $i = 0; $i < 3; $i++ ) {
+			$next = html_entity_decode( $decoded, $flags, $charset );
+
+			if ( $next === $decoded ) {
+				break;
+			}
+
+			$decoded = $next;
+		}
+
+		return $decoded;
 	}
 
 	/**

@@ -129,6 +129,13 @@ class RSS_Post_Aggregator_Taxonomy extends Taxonomy_Core {
 				<?php $this->render_template_settings_link( 'description' ); ?>
 			</td>
 		</tr>
+		<tr class="form-field term-rss-manual-import-wrap">
+			<th scope="row"><?php esc_html_e( 'Manual import', 'wds-rss-post-aggregator' ); ?></th>
+			<td>
+				<?php $this->render_manual_import_link( $term->term_id ); ?>
+				<p class="description"><?php esc_html_e( 'Fetch this feed immediately and import any items that are not already present.', 'wds-rss-post-aggregator' ); ?></p>
+			</td>
+		</tr>
 		<?php
 	}
 
@@ -148,6 +155,35 @@ class RSS_Post_Aggregator_Taxonomy extends Taxonomy_Core {
 			<?php esc_html_e( 'Need to change imported content?', 'wds-rss-post-aggregator' ); ?>
 			<a href="<?php echo esc_url( $settings_url ); ?>"><?php esc_html_e( 'Open template settings and token documentation.', 'wds-rss-post-aggregator' ); ?></a>
 		</p>
+		<?php
+	}
+
+	/**
+	 * Render a per-feed manual import link.
+	 *
+	 * @since 0.2.6
+	 *
+	 * @param int $term_id Feed term ID.
+	 */
+	protected function render_manual_import_link( $term_id ) {
+		$capability = apply_filters( 'rss_post_aggregator_manual_import_capability', 'manage_options' );
+
+		if ( ! current_user_can( $capability ) ) {
+			return;
+		}
+
+		$url = wp_nonce_url(
+			add_query_arg(
+				array(
+					'action'  => 'wds_rss_post_aggregator_import_feed',
+					'feed_id' => absint( $term_id ),
+				),
+				admin_url( 'admin-post.php' )
+			),
+			'wds_rss_post_aggregator_import_feed_' . absint( $term_id )
+		);
+		?>
+		<a class="button button-secondary" href="<?php echo esc_url( $url ); ?>"><?php esc_html_e( 'Import This Feed Now', 'wds-rss-post-aggregator' ); ?></a>
 		<?php
 	}
 

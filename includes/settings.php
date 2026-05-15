@@ -161,6 +161,16 @@ class RSS_Post_Aggregator_Settings {
 				submit_button();
 				?>
 			</form>
+
+			<hr />
+
+			<h2><?php esc_html_e( 'Manual Import', 'wds-rss-post-aggregator' ); ?></h2>
+			<p><?php esc_html_e( 'Run the same importer used by WP-Cron immediately for every feed with automatic import enabled.', 'wds-rss-post-aggregator' ); ?></p>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<input type="hidden" name="action" value="wds_rss_post_aggregator_import_all" />
+				<?php wp_nonce_field( 'wds_rss_post_aggregator_import_all' ); ?>
+				<?php submit_button( __( 'Import Automatic Feeds Now', 'wds-rss-post-aggregator' ), 'secondary', 'submit', false ); ?>
+			</form>
 		</div>
 		<?php
 	}

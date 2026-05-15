@@ -51,8 +51,193 @@ class RSS_Post_Aggregator_Modal {
 	 */
 	public function hooks() {
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
+		add_action( 'admin_notices', array( $this, 'render_import_notice' ) );
+		add_action( 'admin_post_wds_rss_post_aggregator_import_all', array( $this, 'handle_manual_import_all' ) );
+		add_action( 'admin_post_wds_rss_post_aggregator_import_feed', array( $this, 'handle_manual_import_feed' ) );
 		add_action( 'wp_ajax_rss_get_data', array( $this, 'rss_get_data' ) );
 		add_action( 'wp_ajax_rss_save_posts', array( $this, 'rss_save_posts' ) );
+	}
+
+	/**
+	 * Handle the settings-page request to run automatic feed imports now.
+	 *
+	 * @since 0.2.6
+	 */
+	public function handle_manual_import_all() {
+		$this->verify_manual_import_request( 'wds_rss_post_aggregator_import_all' );
+
+		$summary = $this->summarize_import_results( $this->import_all_feeds() );
+
+		$this->redirect_after_manual_import( $summary );
+	}
+
+	/**
+	 * Handle a per-feed request to run an import immediately.
+	 *
+	 * @since 0.2.6
+	 */
+	public function handle_manual_import_feed() {
+		$feed_id = isset( $_GET['feed_id'] ) ? absint( $_GET['feed_id'] ) : 0;
+
+		$this->verify_manual_import_request( 'wds_rss_post_aggregator_import_feed_' . $feed_id );
+
+		$feed = $feed_id ? get_term( $feed_id, $this->tax->taxonomy() ) : false;
+
+		if ( ! $feed || is_wp_error( $feed ) ) {
+			$this->redirect_after_manual_import( array(
+				'attempted' => 0,
+				'imported'  => 0,
+				'skipped'   => 0,
+				'failed'    => 0,
+				'errors'    => 1,
+			) );
+		}
+
+		$summary = $this->summarize_import_results( array(
+			$feed_id => $this->import_feed( $feed->name, $feed_id ),
+		) );
+
+		$this->redirect_after_manual_import( $summary );
+	}
+
+	/**
+	 * Verify a manual import admin request.
+	 *
+	 * @since 0.2.6
+	 *
+	 * @param string $nonce_action Nonce action.
+	 */
+	protected function verify_manual_import_request( $nonce_action ) {
+		if ( ! current_user_can( $this->get_manual_import_capability() ) ) {
+			wp_die( esc_html__( 'You do not have permission to run RSS imports.', 'wds-rss-post-aggregator' ) );
+		}
+
+		check_admin_referer( $nonce_action );
+	}
+
+	/**
+	 * Get the capability required to force manual imports.
+	 *
+	 * @since 0.2.6
+	 *
+	 * @return string Required capability.
+	 */
+	protected function get_manual_import_capability() {
+		return apply_filters( 'rss_post_aggregator_manual_import_capability', 'manage_options' );
+	}
+
+	/**
+	 * Summarize import results for admin notices.
+	 *
+	 * @since 0.2.6
+	 *
+	 * @param array $results Import results keyed by feed term ID.
+	 * @return array Summary counts.
+	 */
+	protected function summarize_import_results( $results ) {
+		$summary = array(
+			'attempted' => 0,
+			'imported'  => 0,
+			'skipped'   => 0,
+			'failed'    => 0,
+			'errors'    => 0,
+		);
+
+		if ( empty( $results ) || ! is_array( $results ) ) {
+			return $summary;
+		}
+
+		foreach ( $results as $feed_result ) {
+			$summary['attempted']++;
+
+			if ( is_wp_error( $feed_result ) ) {
+				$summary['errors']++;
+				continue;
+			}
+
+			if ( ! is_array( $feed_result ) ) {
+				$summary['failed']++;
+				continue;
+			}
+
+			foreach ( $feed_result as $post_result ) {
+				if ( is_array( $post_result ) && isset( $post_result['status'] ) && 'skipped_existing' === $post_result['status'] ) {
+					$summary['skipped']++;
+				} elseif ( is_array( $post_result ) && ! empty( $post_result['post_id'] ) ) {
+					$summary['imported']++;
+				} else {
+					$summary['failed']++;
+				}
+			}
+		}
+
+		return $summary;
+	}
+
+	/**
+	 * Redirect back to the admin screen with manual import results.
+	 *
+	 * @since 0.2.6
+	 *
+	 * @param array $summary Import summary counts.
+	 */
+	protected function redirect_after_manual_import( $summary ) {
+		$redirect = wp_get_referer();
+
+		if ( ! $redirect ) {
+			$redirect = admin_url( 'edit.php?post_type=rss-posts&page=' . RSS_Post_Aggregator_Settings::PAGE_SLUG );
+		}
+
+		$redirect = remove_query_arg( array( 'wds_rss_import', 'attempted', 'imported', 'skipped', 'failed', 'errors' ), $redirect );
+		$redirect = add_query_arg(
+			array(
+				'wds_rss_import' => 'complete',
+				'attempted'      => absint( $summary['attempted'] ),
+				'imported'       => absint( $summary['imported'] ),
+				'skipped'        => absint( $summary['skipped'] ),
+				'failed'         => absint( $summary['failed'] ),
+				'errors'         => absint( $summary['errors'] ),
+			),
+			$redirect
+		);
+
+		wp_safe_redirect( $redirect );
+		exit;
+	}
+
+	/**
+	 * Render an admin notice after a manual import completes.
+	 *
+	 * @since 0.2.6
+	 */
+	public function render_import_notice() {
+		if ( ! isset( $_GET['wds_rss_import'] ) || 'complete' !== $_GET['wds_rss_import'] ) {
+			return;
+		}
+
+		$attempted = isset( $_GET['attempted'] ) ? absint( $_GET['attempted'] ) : 0;
+		$imported  = isset( $_GET['imported'] ) ? absint( $_GET['imported'] ) : 0;
+		$skipped   = isset( $_GET['skipped'] ) ? absint( $_GET['skipped'] ) : 0;
+		$failed    = isset( $_GET['failed'] ) ? absint( $_GET['failed'] ) : 0;
+		$errors    = isset( $_GET['errors'] ) ? absint( $_GET['errors'] ) : 0;
+		$class     = $failed || $errors ? 'notice notice-warning is-dismissible' : 'notice notice-success is-dismissible';
+
+		?>
+		<div class="<?php echo esc_attr( $class ); ?>">
+			<p>
+				<?php
+				printf(
+					esc_html__( 'RSS manual import complete. Feeds attempted: %1$d. Imported: %2$d. Skipped existing: %3$d. Failed posts: %4$d. Feed errors: %5$d.', 'wds-rss-post-aggregator' ),
+					$attempted,
+					$imported,
+					$skipped,
+					$failed,
+					$errors
+				);
+				?>
+			</p>
+		</div>
+		<?php
 	}
 
 	/**

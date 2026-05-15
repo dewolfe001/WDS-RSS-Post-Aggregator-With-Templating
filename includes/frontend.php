@@ -32,9 +32,47 @@ class RSS_Post_Aggregator_Frontend {
 	 * @since 0.1.1
 	 */
 	public function hooks() {
+		add_action( 'pre_get_posts', array( $this, 'include_rss_posts_on_homepage' ) );
 		add_filter( 'post_link', array( $this, 'post_link' ), 10, 2 );
 		add_filter( 'post_type_link', array( $this, 'post_link' ), 10, 2 );
 		add_filter( 'the_permalink', array( $this, 'get_post_and_post_link' ) );
+	}
+
+	/**
+	 * Include imported RSS posts in the default blog/home feed.
+	 *
+	 * This lets the newest imported podcast entries appear beside regular posts
+	 * on the initial posts screen without requiring a theme-level query change.
+	 *
+	 * @since 0.2.1
+	 *
+	 * @param \WP_Query $query Main WordPress query.
+	 */
+	public function include_rss_posts_on_homepage( $query ) {
+		if ( is_admin() || ! $query->is_main_query() || ! $query->is_home() ) {
+			return;
+		}
+
+		$should_include = apply_filters( 'rss_post_aggregator_include_rss_posts_on_home', true, $query );
+		if ( ! $should_include ) {
+			return;
+		}
+
+		$post_types = $query->get( 'post_type' );
+
+		if ( empty( $post_types ) ) {
+			$post_types = array( 'post' );
+		} elseif ( is_string( $post_types ) ) {
+			$post_types = array( $post_types );
+		}
+
+		if ( ! is_array( $post_types ) || in_array( 'any', $post_types, true ) ) {
+			return;
+		}
+
+		$post_types[] = $this->cpt->post_type();
+
+		$query->set( 'post_type', array_values( array_unique( $post_types ) ) );
 	}
 
 	/**
@@ -79,6 +117,12 @@ class RSS_Post_Aggregator_Frontend {
 		$post_id = is_numeric( $post ) ? (int) $post : (int) $post->ID;
 
 		if ( array_key_exists( $post_id, $original_urls ) ) {
+			return $original_urls[ $post_id ];
+		}
+
+		$use_original_url = apply_filters( 'rss_post_aggregator_link_to_original_url', false, $post_id, $post, $link );
+		if ( ! $use_original_url ) {
+			$original_urls[ $post_id ] = $link;
 			return $original_urls[ $post_id ];
 		}
 

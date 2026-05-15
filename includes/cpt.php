@@ -289,8 +289,8 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 	 * @return array|string
 	 */
 	public function insert( $post_data, $feed_id, $post_type = '' ) {
-		$post_type      = $this->get_import_post_type( $post_type );
-		$existing_post  = $this->post_exists( $post_data['link'] );
+		$post_type     = $this->get_import_post_type( $post_type );
+		$existing_post = $this->imported_post_exists( $post_data, $post_type );
 
 		if ( $existing_post ) {
 			return array(
@@ -315,6 +315,7 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 		if ( $post_id ) {
 			$audio_url     = isset( $post_data['audio_url'] ) ? esc_url_raw( $post_data['audio_url'] ) : '';
 			$rss_item_meta = isset( $post_data['rss_item_meta'] ) && is_array( $post_data['rss_item_meta'] ) ? $post_data['rss_item_meta'] : array();
+			$import_uid    = $this->get_import_uid( $post_data );
 
 			if ( $audio_url ) {
 				update_post_meta( $post_id, $this->prefix . 'audio_url', $audio_url );
@@ -327,6 +328,7 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 			$report = array(
 				'post_id'           => $post_id,
 				'original_url'      => update_post_meta( $post_id, $this->prefix . 'original_url', esc_url_raw( $post_data['link'] ) ),
+				'import_uid'        => $import_uid ? update_post_meta( $post_id, $this->prefix . 'import_uid', $import_uid ) : false,
 				'audio_url'         => $audio_url,
 				'import_post_type'  => update_post_meta( $post_id, $this->prefix . 'import_post_type', $post_type ),
 				'rss_item_meta'     => $rss_item_meta,
@@ -424,6 +426,167 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 		$timestamp = $raw_date ? strtotime( $raw_date ) : false;
 
 		return $timestamp ? $timestamp : current_time( 'timestamp' );
+	}
+
+
+	/**
+	 * Find an imported post using stable RSS item identifiers.
+	 *
+	 * Some feeds reuse the same item link for every entry (for example, a
+	 * podcast homepage). In those feeds, checking only the source URL causes one
+	 * imported entry to make all remaining items look like duplicates. Prefer a
+	 * saved RSS GUID or enclosure/audio URL when available, and only fall back to
+	 * the legacy original URL check when no stronger per-item identity exists.
+	 *
+	 * @since 0.2.8
+	 *
+	 * @param array  $post_data Incoming RSS item data.
+	 * @param string $post_type Import destination post type.
+	 * @return \WP_Post|false Imported post when available.
+	 */
+	protected function imported_post_exists( $post_data, $post_type = 'any' ) {
+		$identifiers        = $this->get_import_identifiers( $post_data );
+		$strong_identifiers = $this->get_import_identifiers( $post_data, false );
+
+		if ( ! empty( $identifiers ) ) {
+			$posts = get_posts( array(
+				'posts_per_page' => 1,
+				'post_status'    => array( 'publish', 'pending', 'draft', 'future', 'private' ),
+				'post_type'      => $post_type ? $post_type : 'any',
+				'meta_query'     => array(
+					array(
+						'key'     => $this->prefix . 'import_uid',
+						'value'   => $identifiers,
+						'compare' => 'IN',
+					),
+				),
+			) );
+
+			if ( $posts && is_array( $posts ) ) {
+				return $posts[0];
+			}
+		}
+
+		$legacy_post = ! empty( $post_data['link'] ) ? $this->post_exists( $post_data['link'], $post_type ) : false;
+
+		if ( ! $legacy_post ) {
+			return false;
+		}
+
+		if ( empty( $strong_identifiers ) ) {
+			return $legacy_post;
+		}
+
+		$legacy_identifiers = $this->get_post_import_identifiers( $legacy_post->ID );
+
+		if ( empty( $legacy_identifiers ) ) {
+			return false;
+		}
+
+		return array_intersect( $strong_identifiers, $legacy_identifiers ) ? $legacy_post : false;
+	}
+
+	/**
+	 * Get the canonical import UID for a feed item.
+	 *
+	 * @since 0.2.8
+	 *
+	 * @param array $post_data Incoming RSS item data.
+	 * @return string Import UID.
+	 */
+	protected function get_import_uid( $post_data ) {
+		$identifiers = $this->get_import_identifiers( $post_data );
+
+		return ! empty( $identifiers ) ? reset( $identifiers ) : '';
+	}
+
+	/**
+	 * Get ordered import identifiers for a feed item.
+	 *
+	 * @since 0.2.8
+	 *
+	 * @param array $post_data Incoming RSS item data.
+	 * @param bool  $include_link Whether to include the legacy item link fallback.
+	 * @return array Import identifiers.
+	 */
+	protected function get_import_identifiers( $post_data, $include_link = true ) {
+		$identifiers = array();
+		$meta        = isset( $post_data['rss_item_meta'] ) && is_array( $post_data['rss_item_meta'] ) ? $post_data['rss_item_meta'] : array();
+
+		if ( ! empty( $meta['guid']['value'] ) ) {
+			$identifiers[] = $meta['guid']['value'];
+		}
+
+		if ( ! empty( $post_data['audio_url'] ) ) {
+			$identifiers[] = $post_data['audio_url'];
+		}
+
+		if ( ! empty( $meta['enclosure']['url'] ) ) {
+			$identifiers[] = $meta['enclosure']['url'];
+		}
+
+		if ( $include_link && ! empty( $post_data['link'] ) ) {
+			$identifiers[] = $post_data['link'];
+		}
+
+		return $this->normalize_import_identifiers( $identifiers );
+	}
+
+	/**
+	 * Get import identifiers saved on an existing post.
+	 *
+	 * @since 0.2.8
+	 *
+	 * @param int $post_id Post ID.
+	 * @return array Import identifiers.
+	 */
+	protected function get_post_import_identifiers( $post_id ) {
+		$identifiers = array(
+			get_post_meta( $post_id, $this->prefix . 'import_uid', true ),
+			get_post_meta( $post_id, $this->prefix . 'audio_url', true ),
+		);
+		$guid        = get_post_meta( $post_id, $this->prefix . 'rss_item_guid', true );
+		$enclosure   = get_post_meta( $post_id, $this->prefix . 'rss_item_enclosure', true );
+
+		if ( is_array( $guid ) && ! empty( $guid['value'] ) ) {
+			$identifiers[] = $guid['value'];
+		} elseif ( is_string( $guid ) ) {
+			$identifiers[] = $guid;
+		}
+
+		if ( is_array( $enclosure ) && ! empty( $enclosure['url'] ) ) {
+			$identifiers[] = $enclosure['url'];
+		}
+
+		return $this->normalize_import_identifiers( $identifiers );
+	}
+
+	/**
+	 * Normalize import identifiers before comparing or storing them.
+	 *
+	 * @since 0.2.8
+	 *
+	 * @param array $identifiers Raw identifiers.
+	 * @return array Normalized identifiers.
+	 */
+	protected function normalize_import_identifiers( $identifiers ) {
+		$normalized = array();
+
+		foreach ( $identifiers as $identifier ) {
+			if ( ! is_scalar( $identifier ) ) {
+				continue;
+			}
+
+			$identifier = trim( (string) $identifier );
+
+			if ( '' === $identifier ) {
+				continue;
+			}
+
+			$normalized[] = 0 === stripos( $identifier, 'http' ) ? esc_url_raw( $identifier ) : sanitize_text_field( $identifier );
+		}
+
+		return array_values( array_unique( array_filter( $normalized ) ) );
 	}
 
 	/**

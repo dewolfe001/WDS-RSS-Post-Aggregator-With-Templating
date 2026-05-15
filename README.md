@@ -3,7 +3,7 @@
 **Tags:**              post import, feed import, rss import, rss aggregator
 **Requires at least:** 6.0
 **Tested up to:**      7.0
-**Stable tag:**        0.2.6
+**Stable tag:**        0.2.8
 **License:**           GPLv2 or later
 **License URI:**       http://www.gnu.org/licenses/gpl-2.0.html
 **Requires PHP:**       8.3
@@ -65,6 +65,9 @@ Post Edit Screen - Manually set RSS feed link.
 
 
 ## Changelog ##
+
+### 0.2.8 ###
+* Fix duplicate detection for feeds that reuse one link across multiple RSS items by using GUID/enclosure identifiers.
 
 ### 0.2.6 ###
 * Added manual import controls for all automatic feeds and individual feed terms.

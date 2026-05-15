@@ -34,6 +34,16 @@ class RSS_Post_Aggregator_Taxonomy extends Taxonomy_Core {
 	}
 
 	public function hooks() {
+		add_action( 'admin_notices', array( $this, 'rss_modal_link_notice' ) );
+	}
+
+	public function rss_modal_link_notice() {
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( empty( $screen->taxonomy ) || $this->taxonomy() !== $screen->taxonomy ) {
+			return;
+		}
+
+		echo '<div class="notice notice-info"><p><a class="button button-primary" href="' . esc_url( add_query_arg( array( 'post_type' => isset( $_GET['post_type'] ) ? sanitize_key( wp_unslash( $_GET['post_type'] ) ) : 'rss-posts', 'rss_search_modal' => 1 ), admin_url( 'edit.php' ) ) ) . '">' . esc_html__( 'Open RSS Import Modal', 'wds-rss-post-aggregator' ) . '</a></p></div>';
 	}
 
 }

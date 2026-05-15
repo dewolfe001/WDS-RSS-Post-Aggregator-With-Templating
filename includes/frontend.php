@@ -85,8 +85,20 @@ class RSS_Post_Aggregator_Frontend {
 	 * @return string Content with the audio player when an audio URL exists.
 	 */
 	public function prepend_audio_player( $content ) {
-		if ( ! is_singular( $this->cpt->post_type() ) || ! in_the_loop() || ! is_main_query() ) {
+		if ( ! in_the_loop() || ! is_main_query() ) {
 			return $content;
+		}
+
+		$post = get_post();
+		if ( ! $post || ! get_post_meta( $post->ID, $this->cpt->prefix . 'original_url', true ) ) {
+			return $content;
+		}
+
+		if ( class_exists( __NAMESPACE__ . '\\RSS_Post_Aggregator_Admin' ) ) {
+			$settings = RSS_Post_Aggregator_Admin::get_settings();
+			if ( isset( $settings['media_player_position'] ) && 'before' !== $settings['media_player_position'] ) {
+				return $content;
+			}
 		}
 
 		$audio_url = rss_post_get_audio_url();
@@ -138,13 +150,13 @@ class RSS_Post_Aggregator_Frontend {
 			return $link;
 		}
 
-		if ( ! isset( $post->post_type ) || $post->post_type != $this->cpt->post_type() ) {
+		$post_id = is_numeric( $post ) ? (int) $post : (int) $post->ID;
+
+		if ( ! get_post_meta( $post_id, $this->cpt->prefix . 'original_url', true ) ) {
 			return $link;
 		}
 
 		static $original_urls = array();
-
-		$post_id = is_numeric( $post ) ? (int) $post : (int) $post->ID;
 
 		if ( array_key_exists( $post_id, $original_urls ) ) {
 			return $original_urls[ $post_id ];

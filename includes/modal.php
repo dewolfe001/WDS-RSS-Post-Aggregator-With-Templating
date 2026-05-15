@@ -69,7 +69,8 @@ class RSS_Post_Aggregator_Modal {
 			}
 		}
 
-		$updated = $this->save_posts( $_REQUEST['to_add'], $_REQUEST['feed_id'] );
+		$post_type = isset( $_REQUEST['import_post_type'] ) ? sanitize_key( wp_unslash( $_REQUEST['import_post_type'] ) ) : '';
+		$updated   = $this->save_posts( $_REQUEST['to_add'], $_REQUEST['feed_id'], $post_type );
 		wp_send_json_success( array( $_REQUEST, $updated ) );
 
 	}
@@ -83,11 +84,11 @@ class RSS_Post_Aggregator_Modal {
 	 * @param  integer $feed_id Feed ID.
 	 * @return array          Array of posts stored.
 	 */
-	public function save_posts( $posts, $feed_id ) {
+	public function save_posts( $posts, $feed_id, $post_type = '' ) {
 
 		$updated = array();
 		foreach ( $posts as $post_data ) {
-			$updated[ $post_data['title'] ] = $this->cpt->insert( $post_data, $feed_id );
+			$updated[ $post_data['title'] ] = $this->cpt->insert( $post_data, $feed_id, $post_type );
 		}
 
 		return $updated;
@@ -174,6 +175,7 @@ class RSS_Post_Aggregator_Modal {
 			'show_modal'      => isset( $_GET[ $this->cpt->slug_to_redirect ] ),
 			'no_data'         => __( 'No feed data found', 'wds-rss-post-aggregator' ),
 			'nothing_checked' => __( "You didn't select any posts. Do you want to close the search?", 'wds-rss-post-aggregator' ),
+			'import_post_type' => class_exists( __NAMESPACE__ . '\\RSS_Post_Aggregator_Admin' ) ? RSS_Post_Aggregator_Admin::get_settings()['import_post_type'] : $this->cpt->post_type(),
 		) );
 
 		delete_option( 'wds_rss_aggregate_saved_feed_urls' );

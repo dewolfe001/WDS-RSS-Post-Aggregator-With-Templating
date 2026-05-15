@@ -3,7 +3,7 @@ Contributors:      jtsternberg, dewolfe001
 Tags:              post import, feed import, rss import, rss aggregator
 Requires at least: 6.0
 Tested up to:      7.0
-Stable tag:        0.2.3
+Stable tag:        0.3.0
 License:           GPLv2 or later
 License URI:       http://www.gnu.org/licenses/gpl-2.0.html
 Requires PHP:      8.3
@@ -54,6 +54,11 @@ Use the Featured image panel on each imported RSS Post to upload or replace the 
 
 == Changelog ==
 
+= 0.3.0 =
+* Fix multi-select RSS modal imports so every checked item is sent for import.
+* Add import settings for target post type, post status, cron polling, manual imports, and imported item templates.
+* Show imported RSS items in the RSS Feeds list regardless of which post type stores them.
+
 = 0.2.3 =
 * Capture requested RSS item fields, including iTunes podcast metadata, content, enclosure attributes, GUID attributes, and publication date, as post meta during import.
 * Display retained RSS item fields in the RSS Item Info metabox on imported posts.
@@ -80,6 +85,9 @@ Use the Featured image panel on each imported RSS Post to upload or replace the 
 * First release
 
 == Upgrade Notice ==
+
+= 0.3.0 =
+Adds configurable RSS import post types, cron/manual polling, import templates, and fixes multi-select modal imports.
 
 = 0.2.3 =
 RSS item fields are now retained as post meta for imported RSS Posts.

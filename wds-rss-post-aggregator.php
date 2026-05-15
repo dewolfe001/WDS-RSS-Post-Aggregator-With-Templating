@@ -3,7 +3,7 @@
  * Plugin Name: RSS Post Aggregator
  * Plugin URI:  http://webdevstudios.com
  * Description: Aggregate posts from RSS Feeds
- * Version:     0.2.4
+ * Version:     0.3.0
  * Author:      WebDevStudios, Justin Sternberg
  * Author URI:  http://webdevstudios.com
  * Donate link: https://paypal.me/web321co
@@ -68,7 +68,7 @@ spl_autoload_register( __NAMESPACE__ . '\rss_post_aggregator_autoload_classes' )
  */
 class RSS_Post_Aggregator {
 
-	const VERSION = '0.2.4';
+	const VERSION = '0.3.0';
 	private $cpt_slug          = 'rss-posts';
 	private $tax_slug          = 'rss-feed-links';
 	private $rss_category_slug = 'rss-category';
@@ -104,6 +104,11 @@ class RSS_Post_Aggregator {
 	public $widgets;
 
 	/**
+	 * @var RSS_Post_Aggregator_Admin
+	 */
+	public $admin;
+
+	/**
 	 * @var Taxonomy_Core
 	 */
 	public $rss_category;
@@ -128,6 +133,7 @@ class RSS_Post_Aggregator {
 		$this->taxonomy = new RSS_Post_Aggregator_Taxonomy( $this->tax_slug, $this->rsscpt );
 		$this->rss      = new RSS_Post_Aggregator_Feeds();
 		$this->modal    = new RSS_Post_Aggregator_Modal( $this->rss, $this->rsscpt, $this->taxonomy );
+		$this->admin    = new RSS_Post_Aggregator_Admin( $this->rss, $this->rsscpt, $this->taxonomy );
 
 		// Handles frontend modification for aggregate site
 		$this->frontend = new RSS_Post_Aggregator_Frontend( $this->rsscpt );
@@ -151,6 +157,7 @@ class RSS_Post_Aggregator {
 		$this->rsscpt->hooks();
 		$this->taxonomy->hooks();
 		$this->modal->hooks();
+		$this->admin->hooks();
 		$this->frontend->hooks();
 		$this->widgets->hooks();
 	}
@@ -162,6 +169,8 @@ class RSS_Post_Aggregator {
 		// Make sure any rewrite functionality has been loaded
 		flush_rewrite_rules();
 		add_option( 'wds_rss_aggregate_saved_feed_urls', array(), '', 'no' );
+		RSS_Post_Aggregator::include_file( 'admin' );
+		RSS_Post_Aggregator_Admin::activate();
 
 		$this->maybe_schedule_cron();
 	}
@@ -171,6 +180,8 @@ class RSS_Post_Aggregator {
 	 * Uninstall routines should be in uninstall.php
 	 */
 	function _deactivate() {
+		RSS_Post_Aggregator::include_file( 'admin' );
+		RSS_Post_Aggregator_Admin::deactivate();
 		wp_clear_scheduled_hook( 'wds_rss_post_aggregator_cron_import' );
 	}
 

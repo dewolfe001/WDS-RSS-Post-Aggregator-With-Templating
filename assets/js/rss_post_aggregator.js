@@ -279,7 +279,7 @@ window.RSS_Post_Aggregator = (function(window, document, $, undefined){
 
 			var checked = this.collection.checked();
 
-			if ( ! checked ) {
+			if ( ! checked.length ) {
 				if ( window.confirm( l10n.nothing_checked ) ) {
 					this.close();
 				}
@@ -299,6 +299,7 @@ window.RSS_Post_Aggregator = (function(window, document, $, undefined){
 				'to_add'   : posts,
 				'feed_url' : this.feed_url,
 				'feed_id'  : this.feed_id,
+				'import_post_type' : l10n.import_post_type
 				'nonce'    : l10n.nonce
 			};
 			log( 'data', data );
@@ -364,30 +365,14 @@ window.RSS_Post_Aggregator = (function(window, document, $, undefined){
 		},
 
 		clickRow: function( evt ) {
-			var isChecked = this.$( '.found-radio input' ).prop( 'checked' );
+			var $input = this.$( '.found-radio input' );
 			var $target = $( evt.target );
-			var isNatural = $target.is( 'input' ) || $target.is( 'label' );
-			var val;
 
-			if ( isNatural ) {
-
-				val = $target.val();
-
-				if ( ! isChecked ) {
-					this.model.set( 'checked', false );
-				} else {
-					this.model.set( 'checked', true );
-				}
-			} else {
-
-				if ( isChecked ) {
-					val = this.$( '.found-radio input' ).prop( 'checked', false ).val();
-					this.model.set( 'checked', false );
-				} else {
-					val = this.$( '.found-radio input' ).prop( 'checked', true ).val();
-					this.model.set( 'checked', true );
-				}
+			if ( ! $target.is( 'input' ) && ! $target.is( 'label' ) ) {
+				$input.prop( 'checked', ! $input.prop( 'checked' ) );
 			}
+
+			this.model.set( 'checked', $input.prop( 'checked' ) );
 
 		},
 

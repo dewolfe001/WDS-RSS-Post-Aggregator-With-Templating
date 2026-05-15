@@ -71,7 +71,8 @@ class RSS_Post_Aggregator_Modal {
 			}
 		}
 
-		$updated = $this->save_posts( $_REQUEST['to_add'], $_REQUEST['feed_id'] );
+		$post_type = isset( $_REQUEST['import_post_type'] ) ? sanitize_key( wp_unslash( $_REQUEST['import_post_type'] ) ) : '';
+		$updated   = $this->save_posts( $_REQUEST['to_add'], $_REQUEST['feed_id'], $post_type );
 		wp_send_json_success( array( $_REQUEST, $updated ) );
 
 	}

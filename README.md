@@ -3,7 +3,7 @@
 **Tags:**              post import, feed import, rss import, rss aggregator
 **Requires at least:** 6.0
 **Tested up to:**      7.0
-**Stable tag:**        0.2.4
+**Stable tag:**        0.3.0
 **License:**           GPLv2 or later
 **License URI:**       http://www.gnu.org/licenses/gpl-2.0.html
 **Requires PHP:**       8.3
@@ -66,10 +66,10 @@ Post Edit Screen - Manually set RSS feed link.
 
 ## Changelog ##
 
-### 0.2.4 ###
-* Add hourly scheduled imports for configured feeds, with per-feed destination post type settings.
-* Skip previously imported feed items without updating existing posts.
-* Add AJAX nonce/capability checks for manual imports.
+### 0.3.0 ###
+* Fix multi-select RSS modal imports so every checked item is sent for import.
+* Add import settings for target post type, post status, cron polling, manual imports, and imported item templates.
+* Show imported RSS items in the RSS Feeds list regardless of which post type stores them.
 
 ### 0.2.3 ###
 * Capture requested RSS item fields, including iTunes podcast metadata, content, enclosure attributes, GUID attributes, and publication date, as post meta during import.

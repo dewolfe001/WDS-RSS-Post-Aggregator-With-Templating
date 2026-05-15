@@ -3,7 +3,7 @@ Contributors:      jtsternberg, dewolfe001
 Tags:              post import, feed import, rss import, rss aggregator
 Requires at least: 6.0
 Tested up to:      7.0
-Stable tag:        0.2.4
+Stable tag:        0.3.0
 License:           GPLv2 or later
 License URI:       http://www.gnu.org/licenses/gpl-2.0.html
 Requires PHP:      8.3
@@ -56,6 +56,10 @@ Feed links can be configured for automatic hourly imports from the RSS Feed Link
 
 == Changelog ==
 
+= 0.3.0 =
+* Fix multi-select RSS modal imports so every checked item is sent for import.
+* Add import settings for target post type, post status, cron polling, manual imports, and imported item templates.
+* Show imported RSS items in the RSS Feeds list regardless of which post type stores them.
 = 0.2.4 =
 * Add hourly scheduled imports for configured feeds, with per-feed destination post type settings.
 * Skip previously imported feed items without updating existing posts.
@@ -88,6 +92,8 @@ Feed links can be configured for automatic hourly imports from the RSS Feed Link
 
 == Upgrade Notice ==
 
+= 0.3.0 =
+Adds configurable RSS import post types, cron/manual polling, import templates, and fixes multi-select modal imports.
 = 0.2.4 =
 Feeds can now import hourly into RSS Posts or another public post type while skipping existing imported items.
 

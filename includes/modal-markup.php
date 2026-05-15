@@ -29,7 +29,7 @@
 	</div>
 	<div class="find-box-buttons">
 		<a href="<?php echo esc_url( admin_url( '/edit-tags.php?taxonomy=' . $this->tax->taxonomy() . '&post_type=' . $this->cpt->post_type() ) ); ?>" class="button-secondary manage-feed-links"><?php esc_html_e( 'Manage RSS Feeds', 'wds-rss-post-aggregator' ); ?></a>
-		<a href="<?php echo esc_url( admin_url( '/post-new.php?post_type=' . $this->cpt->post_type() ) ); ?>" class="button-secondary manage-feed-links"><?php esc_html_e( 'Add Post Manually', 'wds-rss-post-aggregator' ); ?></a>
+		<a href="<?php echo esc_url( add_query_arg( array( 'post_type' => $this->cpt->post_type(), 'page' => 'wds-rss-import-settings' ), admin_url( 'edit.php' ) ) ); ?>" class="button-secondary manage-feed-links"><?php esc_html_e( 'Import Settings / Cron', 'wds-rss-post-aggregator' ); ?></a>
 		<div class="spinner" style="display:none;"></div>
 		<?php submit_button( esc_html__( 'Select to Import', 'wds-rss-post-aggregator' ), 'button-primary alignright', 'find-posts-submit', false ); ?>
 		<div class="clear"></div>

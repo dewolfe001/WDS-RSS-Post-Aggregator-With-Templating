@@ -62,11 +62,16 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 
 		// Register this cpt
 		parent::__construct(
-			array( __( 'RSS Post', 'wds-rss-post-aggregator' ), __( 'RSS Posts', 'wds-rss-post-aggregator' ), $cpt_slug ),
+			array( __( 'RSS Feed', 'wds-rss-post-aggregator' ), __( 'RSS Feeds', 'wds-rss-post-aggregator' ), $cpt_slug ),
 			array(
 				'supports'     => array( 'title', 'editor', 'excerpt', 'thumbnail', 'page-attributes' ),
 				'menu_icon'    => 'dashicons-rss',
 				'show_in_rest' => true,
+				'labels'       => array(
+					'add_new_item' => __( 'Add New RSS Feed', 'wds-rss-post-aggregator' ),
+					'add_new'      => __( 'Add New RSS Feed', 'wds-rss-post-aggregator' ),
+					'edit_item'    => __( 'Edit RSS Feed', 'wds-rss-post-aggregator' ),
+				),
 			)
 		);
 	}
@@ -80,6 +85,7 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 		add_action( 'admin_menu', array( $this, 'pseudo_menu_item' ) );
 		add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ) );
 		add_action( 'save_post', array( $this, 'save_meta' ) );
+		add_action( 'pre_get_posts', array( $this, 'show_all_imported_items_on_listing' ) );
 	}
 
 	/**
@@ -90,7 +96,7 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 	 * @return false Return false if page is not correct.
 	 */
 	public function pseudo_menu_item() {
-		add_submenu_page( 'edit.php?post_type=' . $this->post_type(), '', esc_html__( 'Find RSS Post', 'wds-rss-post-aggregator' ), 'edit_posts', $this->slug_to_redirect, '__return_empty_string' );
+		add_submenu_page( 'edit.php?post_type=' . $this->post_type(), '', esc_html__( 'Open RSS Import Modal', 'wds-rss-post-aggregator' ), 'edit_posts', $this->slug_to_redirect, '__return_empty_string' );
 
 		if ( ! isset( $_GET['page'] ) || $this->slug_to_redirect != $_GET['page'] ) {
 			return;
@@ -110,6 +116,20 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 	 *
 	 * @return boolean Returns boolean.
 	 */
+	public function show_all_imported_items_on_listing( $query ) {
+		if ( ! is_admin() || ! $query->is_main_query() || ! $this->is_listing() ) {
+			return;
+		}
+
+		$query->set( 'post_type', 'any' );
+		$query->set( 'meta_query', array(
+			array(
+				'key'     => $this->prefix . 'original_url',
+				'compare' => 'EXISTS',
+			),
+		) );
+	}
+
 	public function is_listing() {
 		if ( isset( $this->is_listing ) ) {
 			return $this->is_listing;
@@ -174,8 +194,18 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 	 * @author JayWood
 	 */
 	public function add_meta_box() {
-		add_meta_box( 'rsslink_mb', esc_html__( 'RSS Item Info', 'wds-rss-post-aggregator' ), array( $this, 'render_metabox' ), $this->post_type() );
-		add_meta_box( 'rsspost_title_image_help', esc_html__( 'Podcast Title Image', 'wds-rss-post-aggregator' ), array( $this, 'render_title_image_help_metabox' ), $this->post_type(), 'side', 'default' );
+		$post_types = array( $this->post_type() );
+		if ( class_exists( __NAMESPACE__ . '\\RSS_Post_Aggregator_Admin' ) ) {
+			$settings = RSS_Post_Aggregator_Admin::get_settings();
+			if ( ! empty( $settings['import_post_type'] ) ) {
+				$post_types[] = $settings['import_post_type'];
+			}
+		}
+
+		foreach ( array_unique( $post_types ) as $post_type ) {
+			add_meta_box( 'rsslink_mb', esc_html__( 'RSS Item Info', 'wds-rss-post-aggregator' ), array( $this, 'render_metabox' ), $post_type );
+			add_meta_box( 'rsspost_title_image_help', esc_html__( 'Podcast Title Image', 'wds-rss-post-aggregator' ), array( $this, 'render_title_image_help_metabox' ), $post_type, 'side', 'default' );
+		}
 	}
 
 	/**
@@ -300,9 +330,11 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 		}
 
 		$post_timestamp = $this->get_import_timestamp( $post_data );
+		$post_type      = $this->get_import_post_type( $post_type );
+		$post_status    = $this->get_import_post_status();
 
 		$args = array(
-			'post_content'  => wp_kses_post( stripslashes( $post_data['summary'] ) ),
+			'post_content'  => class_exists( __NAMESPACE__ . '\\RSS_Post_Aggregator_Admin' ) ? RSS_Post_Aggregator_Admin::render_imported_content( $post_data ) : wp_kses_post( stripslashes( $post_data['summary'] ) ),
 			'post_title'    => esc_html( stripslashes( $post_data['title'] ) ),
 			'post_status'   => 'draft',
 			'post_type'     => $post_type,
@@ -326,6 +358,7 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 			$report = array(
 				'post_id'           => $post_id,
 				'original_url'      => update_post_meta( $post_id, $this->prefix . 'original_url', esc_url_raw( $post_data['link'] ) ),
+				'import_post_type'  => update_post_meta( $post_id, $this->prefix . 'import_post_type', $post_type ),
 				'audio_url'         => $audio_url,
 				'rss_item_meta'     => $rss_item_meta,
 				'img_src'           => has_post_thumbnail( $post_id ) ? wp_get_attachment_url( get_post_thumbnail_id( $post_id ) ) : $this->sideload_featured_image( isset( $post_data['image'] ) ? esc_url_raw( $post_data['image'] ) : '', $post_id ),
@@ -434,11 +467,31 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 	 * @author JayWood, Justin Sternberg
 	 * @return bool|mixed
 	 */
-	public function post_exists( $url, $post_type = 'any' ) {
+	protected function get_import_post_type( $post_type = '' ) {
+		if ( empty( $post_type ) && class_exists( __NAMESPACE__ . '\\RSS_Post_Aggregator_Admin' ) ) {
+			$settings  = RSS_Post_Aggregator_Admin::get_settings();
+			$post_type = isset( $settings['import_post_type'] ) ? $settings['import_post_type'] : '';
+		}
+
+		$post_type = sanitize_key( $post_type );
+		return post_type_exists( $post_type ) ? $post_type : $this->post_type();
+	}
+
+	protected function get_import_post_status() {
+		$status = 'draft';
+		if ( class_exists( __NAMESPACE__ . '\\RSS_Post_Aggregator_Admin' ) ) {
+			$settings = RSS_Post_Aggregator_Admin::get_settings();
+			$status   = isset( $settings['import_status'] ) ? $settings['import_status'] : 'draft';
+		}
+
+		return in_array( $status, array( 'draft', 'publish', 'pending', 'private' ), true ) ? $status : 'draft';
+	}
+
+	public function post_exists( $url ) {
 		$args = array(
 			'posts_per_page' => 1,
 			'post_status'    => array( 'publish', 'pending', 'draft', 'future', 'private' ),
-			'post_type'      => $post_type ? $post_type : 'any',
+			'post_type'      => 'any',
 			'meta_key'       => $this->prefix . 'original_url',
 			'meta_value'     => esc_url_raw( $url ),
 		);

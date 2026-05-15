@@ -3,7 +3,7 @@
 **Tags:**              post import, feed import, rss import, rss aggregator
 **Requires at least:** 6.0
 **Tested up to:**      7.0
-**Stable tag:**        0.2.2
+**Stable tag:**        0.2.3
 **License:**           GPLv2 or later
 **License URI:**       http://www.gnu.org/licenses/gpl-2.0.html
 **Requires PHP:**       8.3
@@ -21,6 +21,7 @@ With RSS Post Aggregator, the following is pulled in during the import process:
 * Original Post URL
 * Post Content
 * Post Thumbnail
+* Retained RSS item custom fields/post meta for title, iTunes metadata, summaries/descriptions, encoded content, enclosure data, GUID data, and publication date
 
 ## Installation ##
 
@@ -62,6 +63,10 @@ Post Edit Screen - Manually set RSS feed link.
 
 
 ## Changelog ##
+
+### 0.2.3 ###
+* Capture requested RSS item fields, including iTunes podcast metadata, content, enclosure attributes, GUID attributes, and publication date, as post meta during import.
+* Display retained RSS item fields in the RSS Item Info metabox on imported posts.
 
 ### 0.2.2 ###
 * Retain podcast audio enclosure URLs during import, expose them in the RSS Item Info metabox, and show a WordPress audio player on local detail pages.

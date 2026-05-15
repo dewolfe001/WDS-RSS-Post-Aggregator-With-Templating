@@ -108,9 +108,10 @@ class RSS_Post_Aggregator_Feeds {
 
 			$rss_item = array();
 
-			$rss_item['link']      = $this->get_link();
-			$rss_item['title']     = $this->get_title();
-			$rss_item['audio_url'] = $this->get_audio_url();
+			$rss_item['link']          = $this->get_link();
+			$rss_item['title']         = $this->get_title();
+			$rss_item['audio_url']     = $this->get_audio_url();
+			$rss_item['rss_item_meta'] = $this->get_rss_item_meta();
 
 			if ( $show_image ) {
 				$rss_item['image'] = $this->get_image();
@@ -239,6 +240,186 @@ class RSS_Post_Aggregator_Feeds {
 		}
 
 		return apply_filters( 'rss_post_aggregator_feed_audio_url', $audio_url, $this->rss_link, $this );
+	}
+
+
+	/**
+	 * Get the RSS item fields that should be retained as post meta on import.
+	 *
+	 * @since 0.2.3
+	 *
+	 * @return array RSS item meta fields keyed by normalized field name.
+	 */
+	public function get_rss_item_meta() {
+		$guid_tag      = $this->get_item_tag( array( '' ), 'guid' );
+		$guid_attribs  = $this->get_tag_attribs( $guid_tag );
+		$enclosure_tag = $this->get_item_tag( array( '' ), 'enclosure' );
+
+		$meta = array(
+			'itunes_title'        => $this->get_namespaced_value( $this->itunes_namespace(), 'title' ),
+			'title'               => $this->get_namespaced_value( array( '' ), 'title' ),
+			'itunes_summary'      => $this->get_namespaced_value( $this->itunes_namespace(), 'summary', true ),
+			'description'         => $this->get_namespaced_value( array( '' ), 'description', true ),
+			'content_encoded'     => $this->get_namespaced_value( $this->content_namespace(), 'encoded', true ),
+			'enclosure'           => $this->get_enclosure_meta( $enclosure_tag ),
+			'itunes_author'       => $this->get_namespaced_value( $this->itunes_namespace(), 'author' ),
+			'guid'                => array(
+				'value'        => $this->sanitize_meta_value( isset( $guid_tag['data'] ) ? $guid_tag['data'] : '' ),
+				'is_permalink' => isset( $guid_attribs['isPermaLink'] ) ? $this->sanitize_meta_value( $guid_attribs['isPermaLink'] ) : '',
+			),
+			'pub_date'            => $this->get_namespaced_value( array( '' ), 'pubDate' ),
+			'itunes_duration'     => $this->get_namespaced_value( $this->itunes_namespace(), 'duration' ),
+			'itunes_keywords'     => $this->get_namespaced_value( $this->itunes_namespace(), 'keywords' ),
+			'itunes_episode'      => $this->get_namespaced_value( $this->itunes_namespace(), 'episode' ),
+			'itunes_episode_type' => $this->get_namespaced_value( $this->itunes_namespace(), 'episodeType' ),
+			'itunes_explicit'     => $this->get_namespaced_value( $this->itunes_namespace(), 'explicit' ),
+		);
+
+		/**
+		 * Filters the retained RSS item meta before the item is returned to the importer.
+		 *
+		 * @since 0.2.3
+		 *
+		 * @param array                     $meta     Retained RSS item meta.
+		 * @param string                    $rss_link Current RSS feed URL.
+		 * @param RSS_Post_Aggregator_Feeds $feeds    Current feeds instance.
+		 */
+		return apply_filters( 'rss_post_aggregator_feed_item_meta', $meta, $this->rss_link, $this );
+	}
+
+	/**
+	 * Get known iTunes RSS namespaces.
+	 *
+	 * @since 0.2.3
+	 *
+	 * @return array iTunes namespaces.
+	 */
+	protected function itunes_namespace() {
+		return array(
+			'http://www.itunes.com/dtds/podcast-1.0.dtd',
+			'http://www.itunes.com/DTDs/Podcast-1.0.dtd',
+		);
+	}
+
+	/**
+	 * Get known content module namespaces.
+	 *
+	 * @since 0.2.3
+	 *
+	 * @return array Content module namespaces.
+	 */
+	protected function content_namespace() {
+		return array( 'http://purl.org/rss/1.0/modules/content/' );
+	}
+
+	/**
+	 * Get and sanitize a namespaced item value.
+	 *
+	 * @since 0.2.3
+	 *
+	 * @param array|string $namespaces Namespaces to inspect.
+	 * @param string       $tag        Tag name.
+	 * @param bool         $allow_html Whether safe HTML should be retained.
+	 * @return string Sanitized value.
+	 */
+	protected function get_namespaced_value( $namespaces, $tag, $allow_html = false ) {
+		$item_tag = $this->get_item_tag( (array) $namespaces, $tag );
+		$value    = isset( $item_tag['data'] ) ? $item_tag['data'] : '';
+
+		return $this->sanitize_meta_value( $value, $allow_html );
+	}
+
+	/**
+	 * Get a SimplePie item tag from the first namespace that contains it.
+	 *
+	 * @since 0.2.3
+	 *
+	 * @param array  $namespaces Namespaces to inspect.
+	 * @param string $tag        Tag name.
+	 * @return array Tag data.
+	 */
+	protected function get_item_tag( $namespaces, $tag ) {
+		if ( ! is_object( $this->item ) || ! method_exists( $this->item, 'get_item_tags' ) ) {
+			return array();
+		}
+
+		foreach ( $namespaces as $namespace ) {
+			$item_tags = $this->item->get_item_tags( $namespace, $tag );
+
+			if ( ! empty( $item_tags[0] ) && is_array( $item_tags[0] ) ) {
+				return $item_tags[0];
+			}
+		}
+
+		return array();
+	}
+
+	/**
+	 * Get flattened tag attributes from a SimplePie tag array.
+	 *
+	 * @since 0.2.3
+	 *
+	 * @param array $tag Tag data.
+	 * @return array Tag attributes.
+	 */
+	protected function get_tag_attribs( $tag ) {
+		if ( empty( $tag['attribs'] ) || ! is_array( $tag['attribs'] ) ) {
+			return array();
+		}
+
+		$attribs = array();
+		foreach ( $tag['attribs'] as $namespace_attribs ) {
+			if ( is_array( $namespace_attribs ) ) {
+				$attribs = array_merge( $attribs, $namespace_attribs );
+			}
+		}
+
+		return $attribs;
+	}
+
+	/**
+	 * Get enclosure attributes to retain as RSS item meta.
+	 *
+	 * @since 0.2.3
+	 *
+	 * @param array $enclosure_tag Enclosure tag data.
+	 * @return array Enclosure meta.
+	 */
+	protected function get_enclosure_meta( $enclosure_tag ) {
+		$attribs   = $this->get_tag_attribs( $enclosure_tag );
+		$enclosure = array(
+			'url'    => isset( $attribs['url'] ) ? esc_url_raw( $attribs['url'] ) : '',
+			'length' => isset( $attribs['length'] ) ? $this->sanitize_meta_value( $attribs['length'] ) : '',
+			'type'   => isset( $attribs['type'] ) ? sanitize_mime_type( $attribs['type'] ) : '',
+		);
+
+		if ( empty( $enclosure['url'] ) ) {
+			$simplepie_enclosure = $this->item->get_enclosure();
+
+			if ( $simplepie_enclosure ) {
+				$enclosure['url']    = esc_url_raw( (string) $simplepie_enclosure->get_link() );
+				$enclosure['length'] = $this->sanitize_meta_value( (string) $simplepie_enclosure->get_length() );
+				$enclosure['type']   = sanitize_mime_type( (string) $simplepie_enclosure->get_type() );
+			}
+		}
+
+		return $enclosure;
+	}
+
+	/**
+	 * Sanitize retained RSS meta values.
+	 *
+	 * @since 0.2.3
+	 *
+	 * @param string $value      Value to sanitize.
+	 * @param bool   $allow_html Whether safe HTML should be retained.
+	 * @return string Sanitized value.
+	 */
+	protected function sanitize_meta_value( $value, $allow_html = false ) {
+		$value = html_entity_decode( (string) $value, ENT_QUOTES, get_option( 'blog_charset' ) );
+		$value = trim( $value );
+
+		return $allow_html ? wp_kses_post( $value ) : sanitize_text_field( $value );
 	}
 
 	/**

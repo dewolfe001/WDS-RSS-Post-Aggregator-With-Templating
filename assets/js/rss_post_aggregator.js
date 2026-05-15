@@ -137,6 +137,10 @@ window.RSS_Post_Aggregator = (function(window, document, $, undefined){
 		},
 
 		search: function() {
+			if ( ! this.collection ) {
+				return;
+			}
+
 			this.waiting();
 			this.renderItems( this.collection.search( this.$search.val() ) );
 		},
@@ -277,9 +281,13 @@ window.RSS_Post_Aggregator = (function(window, document, $, undefined){
 		submit: function( evt ) {
 			evt.preventDefault();
 
+			if ( ! this.collection ) {
+				return;
+			}
+
 			var checked = this.collection.checked();
 
-			if ( ! checked ) {
+			if ( ! checked.length ) {
 				if ( window.confirm( l10n.nothing_checked ) ) {
 					this.close();
 				}
@@ -287,7 +295,7 @@ window.RSS_Post_Aggregator = (function(window, document, $, undefined){
 			}
 
 			log( 'checked', checked );
-			log( checked ? checked.toJSON() : 'nothing checked' );
+			log( checked.toJSON() );
 
 			this.importPosts( checked.toJSON() );
 		},

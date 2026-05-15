@@ -3,7 +3,7 @@ Contributors:      jtsternberg, dewolfe001
 Tags:              post import, feed import, rss import, rss aggregator
 Requires at least: 6.0
 Tested up to:      7.0
-Stable tag:        0.2.0
+Stable tag:        0.2.2
 License:           GPLv2 or later
 License URI:       http://www.gnu.org/licenses/gpl-2.0.html
 Requires PHP:      8.3
@@ -32,16 +32,11 @@ With RSS Post Aggregator, the following is pulled in during the import process:
 2. Activate RSS Post Aggregator through the 'Plugins' menu in WordPress.
 
 = Dev Documentation =
-To include RSS Posts in a loop, you only need to add the post-type of `rss-posts` to the query, here's an example:
-`
-// Add query to main loop on homepage.
-add_action( 'pre_get_posts', 'wds_get_my_posts' );
-function wds_get_my_posts( $query ){
-	if( $query->is_home() && $query->is_main_query() ){
-		$query->set( 'post_type', array( 'post', 'rss-posts' ) );
-	}
-}
-`
+Imported RSS Posts are automatically included with regular posts on the main blog/home query so the newest podcast/blog entries can appear on the initial posts screen. To disable that behavior, return `false` from the `rss_post_aggregator_include_rss_posts_on_home` filter.
+
+Imported RSS Post permalinks now open the local WordPress entry by default so visitors can read the editable description/content page. Podcast audio enclosure URLs are saved in the RSS Item Info box as `Podcast Audio URL` and are displayed with a WordPress audio player on the local detail page when available. To restore the older behavior of sending RSS Post links directly to the source URL, return `true` from the `rss_post_aggregator_link_to_original_url` filter.
+
+Use the Featured image panel on each imported RSS Post to upload or replace the per-entry podcast title image. Re-importing an existing item will not overwrite a manually selected Featured image.
 
 == Frequently Asked Questions ==
 [Open A Ticket](https://github.com/WebDevStudios/WDS-RSS-Post-Aggregator/issues)
@@ -58,6 +53,15 @@ function wds_get_my_posts( $query ){
 
 == Changelog ==
 
+= 0.2.2 =
+* Retain podcast audio enclosure URLs during import, expose them in the RSS Item Info metabox, and show a WordPress audio player on local detail pages.
+
+= 0.2.1 =
+* Include imported RSS Posts in the main blog/home query so the newest imported podcast entries can appear on the initial posts screen.
+* Link imported RSS Posts to local detail pages by default, while retaining a filter to opt back into source URL redirects.
+* Surface Featured image guidance for per-entry podcast title images and preserve manually selected images on re-import.
+* Fix the RSS Feed with Images widget title markup and prefer local imported post links/images when available.
+
 = 0.2.0 =
 * Add PHP 8.3+ compatibility updates, including explicit class properties and safer DOM parsing.
 * Update compatibility metadata for WordPress 6.x and WordPress 7.
@@ -71,6 +75,12 @@ function wds_get_my_posts( $query ){
 * First release
 
 == Upgrade Notice ==
+
+= 0.2.2 =
+Podcast audio enclosure URLs are retained on import and shown on local RSS post detail pages.
+
+= 0.2.1 =
+Imported RSS posts now appear in the main blog/home query, open local detail pages by default, and preserve editable Featured images for podcast title art.
 
 = 0.2.0 =
 Compatibility release for PHP 8.3+ and WordPress 6.x/7.0.

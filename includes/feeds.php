@@ -108,8 +108,9 @@ class RSS_Post_Aggregator_Feeds {
 
 			$rss_item = array();
 
-			$rss_item['link'] = $this->get_link();
-			$rss_item['title'] = $this->get_title();
+			$rss_item['link']      = $this->get_link();
+			$rss_item['title']     = $this->get_title();
+			$rss_item['audio_url'] = $this->get_audio_url();
 
 			if ( $show_image ) {
 				$rss_item['image'] = $this->get_image();
@@ -166,7 +167,8 @@ class RSS_Post_Aggregator_Feeds {
 		$this->cache_time = (int) $args['cache_time'];
 
 		$this->transient_id = md5( serialize( array_merge( array(
-			'rss_link'  => $this->rss_link,
+			'rss_link'       => $this->rss_link,
+			'schema_version' => RSS_Post_Aggregator::VERSION,
 		), $args ) ) );
 		return $args;
 	}
@@ -204,6 +206,39 @@ class RSS_Post_Aggregator_Feeds {
 		$link = esc_url( strip_tags( trim( $link ) ) );
 
 		return apply_filters( 'rss_post_aggregator_feed_link', $link, $this->rss_link, $this );
+	}
+
+	/**
+	 * Get the audio enclosure URL for podcast RSS items.
+	 *
+	 * @since 0.2.2
+	 *
+	 * @return string Audio enclosure URL.
+	 */
+	public function get_audio_url() {
+		$audio_url  = '';
+		$enclosures = $this->item->get_enclosures();
+
+		if ( empty( $enclosures ) ) {
+			$enclosure = $this->item->get_enclosure();
+			$enclosures = $enclosure ? array( $enclosure ) : array();
+		}
+
+		foreach ( $enclosures as $enclosure ) {
+			$type = (string) $enclosure->get_type();
+			$link = (string) $enclosure->get_link();
+
+			if ( empty( $link ) ) {
+				continue;
+			}
+
+			if ( 0 === strpos( $type, 'audio/' ) || preg_match( '/\.(mp3|m4a|ogg|oga|wav)(\?.*)?$/i', $link ) ) {
+				$audio_url = esc_url_raw( $link );
+				break;
+			}
+		}
+
+		return apply_filters( 'rss_post_aggregator_feed_audio_url', $audio_url, $this->rss_link, $this );
 	}
 
 	/**

@@ -176,14 +176,23 @@ class RSS_Post_Aggregator_Category_Featured_Images_Widget extends WP_Widget {
 		if ( ! empty( $posts ) ) {
 			echo '<ul class="rss-feed-posts">';
 			foreach ( $posts as $p ) {
+				$imported_post = rss_post_get_post_by_original_url( $p['link'] );
+				$post_link     = $imported_post ? get_permalink( $imported_post ) : $p['link'];
+				$post_title    = $imported_post ? get_the_title( $imported_post ) : $p['title'];
+				$image         = ! empty( $p['image'] ) ? $p['image'] : '';
+
+				if ( $imported_post && has_post_thumbnail( $imported_post ) ) {
+					$image = get_the_post_thumbnail_url( $imported_post, 'full' );
+				}
+
 				echo '<li>';
 
-				echo '<a class="post-title" href="' . esc_url( $p['link'] ) . '"/>';
-				echo $p['title'];
+				echo '<a class="post-title" href="' . esc_url( $post_link ) . '">';
+				echo esc_html( $post_title );
 				echo '</a>';
 
-				if ( ! empty( $p['image'] ) ) {
-					echo '<div class="rss-feed-post-image"><img class="featured-post-thumb alignleft" src="' . esc_attr( $p['image'] ) . '" /></div>';
+				if ( ! empty( $image ) ) {
+					echo '<div class="rss-feed-post-image"><a href="' . esc_url( $post_link ) . '"><img class="featured-post-thumb alignleft" src="' . esc_url( $image ) . '" alt="' . esc_attr( $post_title ) . '" /></a></div>';
 				}
 
 				$content = str_replace( '»', '', $p['summary'] );
@@ -195,7 +204,7 @@ class RSS_Post_Aggregator_Category_Featured_Images_Widget extends WP_Widget {
 				echo wpautop( $content );
 
 				if ( isset( $instance['read_more_text'] ) && trim( $instance['read_more_text'] ) ) {
-					echo ' <a class="read-more" href="' . esc_url( $p['link'] ) . '">' . esc_html( $instance['read_more_text'] ) . '</a>';
+					echo ' <a class="read-more" href="' . esc_url( $post_link ) . '">' . esc_html( $instance['read_more_text'] ) . '</a>';
 				}
 
 				echo '</li>';

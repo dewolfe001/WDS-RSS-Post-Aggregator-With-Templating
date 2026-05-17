@@ -70,6 +70,8 @@ class RSS_Post_Aggregator_Taxonomy extends Taxonomy_Core {
 		add_action( $this->taxonomy() . '_edit_form_fields', array( $this, 'edit_form_fields' ) );
 		add_action( 'created_' . $this->taxonomy(), array( $this, 'save_term_fields' ) );
 		add_action( 'edited_' . $this->taxonomy(), array( $this, 'save_term_fields' ) );
+		add_filter( 'manage_edit-' . $this->taxonomy() . '_columns', array( $this, 'add_feed_url_column' ) );
+		add_filter( 'manage_' . $this->taxonomy() . '_custom_column', array( $this, 'render_feed_url_column' ), 10, 3 );
 	}
 
 	/**
@@ -91,6 +93,11 @@ class RSS_Post_Aggregator_Taxonomy extends Taxonomy_Core {
 	public function add_form_fields() {
 		wp_nonce_field( 'rss_feed_link_settings', 'rss_feed_link_settings_nonce' );
 		?>
+		<div class="form-field term-rss-feed-url-wrap">
+			<label for="rss-feed-url"><?php esc_html_e( 'RSS Feed address', 'wds-rss-post-aggregator' ); ?></label>
+			<input type="url" id="rss-feed-url" name="rss_feed_url" value="" placeholder="https://example.com/feed.xml" />
+			<p><?php esc_html_e( 'Enter the full RSS feed URL for this feed link. The name can stay descriptive; imports use this address.', 'wds-rss-post-aggregator' ); ?></p>
+		</div>
 		<div class="form-field term-rss-auto-import-wrap">
 			<label for="rss-auto-import"><?php esc_html_e( 'Automatic import', 'wds-rss-post-aggregator' ); ?></label>
 			<label>
@@ -117,8 +124,16 @@ class RSS_Post_Aggregator_Taxonomy extends Taxonomy_Core {
 	public function edit_form_fields( $term ) {
 		$auto_import     = $this->is_auto_import_enabled( $term->term_id );
 		$target_post_type = $this->get_target_post_type( $term->term_id );
+		$feed_url         = $this->get_feed_url( $term );
 		wp_nonce_field( 'rss_feed_link_settings', 'rss_feed_link_settings_nonce' );
 		?>
+		<tr class="form-field term-rss-feed-url-wrap">
+			<th scope="row"><label for="rss-feed-url"><?php esc_html_e( 'RSS Feed address', 'wds-rss-post-aggregator' ); ?></label></th>
+			<td>
+				<input type="url" id="rss-feed-url" name="rss_feed_url" value="<?php echo esc_attr( $feed_url ); ?>" class="regular-text" placeholder="https://example.com/feed.xml" />
+				<p class="description"><?php esc_html_e( 'Enter the full RSS feed URL for this feed link. The name can stay descriptive; imports use this address.', 'wds-rss-post-aggregator' ); ?></p>
+			</td>
+		</tr>
 		<tr class="form-field term-rss-auto-import-wrap">
 			<th scope="row"><label for="rss-auto-import"><?php esc_html_e( 'Automatic import', 'wds-rss-post-aggregator' ); ?></label></th>
 			<td>
@@ -208,6 +223,7 @@ class RSS_Post_Aggregator_Taxonomy extends Taxonomy_Core {
 
 		$auto_import = isset( $_POST['rss_auto_import'] ) ? '1' : '0';
 		$post_type   = isset( $_POST['rss_target_post_type'] ) ? sanitize_key( wp_unslash( $_POST['rss_target_post_type'] ) ) : $this->default_post_type;
+		$feed_url    = isset( $_POST['rss_feed_url'] ) ? $this->normalize_feed_url( wp_unslash( $_POST['rss_feed_url'] ) ) : '';
 
 		if ( ! in_array( $post_type, $this->get_importable_post_types(), true ) ) {
 			$post_type = $this->default_post_type;
@@ -215,6 +231,92 @@ class RSS_Post_Aggregator_Taxonomy extends Taxonomy_Core {
 
 		update_term_meta( $term_id, self::META_AUTO_IMPORT, $auto_import );
 		update_term_meta( $term_id, self::META_TARGET_POST_TYPE, $post_type );
+
+		if ( $feed_url ) {
+			update_term_meta( $term_id, self::META_FEED_URL, esc_url_raw( $feed_url ) );
+		} else {
+			delete_term_meta( $term_id, self::META_FEED_URL );
+		}
+	}
+
+	/**
+	 * Get the configured RSS URL for a feed term.
+	 *
+	 * Falls back to URL term names for legacy feeds that were created before
+	 * the dedicated RSS Feed address term meta existed.
+	 *
+	 * @since 0.2.10
+	 *
+	 * @param \WP_Term $term Feed term.
+	 * @return string Feed URL, or an empty string when no valid URL is saved.
+	 */
+	public function get_feed_url( $term ) {
+		$feed_url = get_term_meta( $term->term_id, self::META_FEED_URL, true );
+		$feed_url = $feed_url ? $feed_url : $term->name;
+
+		return $this->normalize_feed_url( $feed_url );
+	}
+
+	/**
+	 * Normalize saved feed input into a usable URL.
+	 *
+	 * @since 0.2.10
+	 *
+	 * @param string $feed_url Feed URL.
+	 * @return string Valid feed URL, or an empty string when it cannot be normalized.
+	 */
+	public function normalize_feed_url( $feed_url ) {
+		$feed_url = esc_url_raw( trim( (string) $feed_url ) );
+		$parts    = $feed_url ? wp_parse_url( $feed_url ) : array();
+
+		if (
+			! empty( $parts['scheme'] )
+			&& ! empty( $parts['host'] )
+			&& in_array( strtolower( $parts['scheme'] ), array( 'http', 'https' ), true )
+		) {
+			return $feed_url;
+		}
+
+		return '';
+	}
+
+	/**
+	 * Add the RSS Feed address column to the feed-link term list.
+	 *
+	 * @since 0.2.10
+	 *
+	 * @param array $columns Taxonomy list table columns.
+	 * @return array Filtered columns.
+	 */
+	public function add_feed_url_column( $columns ) {
+		$columns['rss_feed_url'] = __( 'RSS Feed address', 'wds-rss-post-aggregator' );
+
+		return $columns;
+	}
+
+	/**
+	 * Render the RSS Feed address column.
+	 *
+	 * @since 0.2.10
+	 *
+	 * @param string $output      Existing column output.
+	 * @param string $column_name Column name.
+	 * @param int    $term_id     Term ID.
+	 * @return string Column output.
+	 */
+	public function render_feed_url_column( $output, $column_name, $term_id ) {
+		if ( 'rss_feed_url' !== $column_name ) {
+			return $output;
+		}
+
+		$term = get_term( $term_id, $this->taxonomy() );
+		$url  = ( $term && ! is_wp_error( $term ) ) ? $this->get_feed_url( $term ) : '';
+
+		if ( ! $url ) {
+			return '&mdash;';
+		}
+
+		return sprintf( '<a href="%1$s">%2$s</a>', esc_url( $url ), esc_html( $url ) );
 	}
 
 	/**

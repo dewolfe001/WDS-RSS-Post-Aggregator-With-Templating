@@ -600,7 +600,13 @@ class RSS_Post_Aggregator_Modal {
 
 		if ( $feed_links && is_array( $feed_links ) ) {
 			foreach ( $feed_links as $link ) {
-				$this->feed_links[ $link->term_id ] = esc_url( $this->get_feed_url( $link ) );
+				$feed_url = $this->get_feed_url( $link );
+
+				if ( ! $feed_url ) {
+					continue;
+				}
+
+				$this->feed_links[ $link->term_id ] = esc_url( $feed_url );
 			}
 		}
 

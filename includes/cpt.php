@@ -64,9 +64,10 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 		parent::__construct(
 			array( __( 'RSS Post', 'wds-rss-post-aggregator' ), __( 'RSS Posts', 'wds-rss-post-aggregator' ), $cpt_slug ),
 			array(
-				'supports'     => array( 'title', 'editor', 'excerpt', 'thumbnail', 'page-attributes' ),
-				'menu_icon'    => 'dashicons-rss',
-				'show_in_rest' => true,
+				'supports'      => array( 'title', 'editor', 'excerpt', 'thumbnail', 'page-attributes' ),
+				'menu_icon'     => 'dashicons-rss',
+				'menu_position' => 6,
+				'show_in_rest'  => true,
 			)
 		);
 	}

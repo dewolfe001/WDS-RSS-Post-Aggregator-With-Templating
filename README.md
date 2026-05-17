@@ -3,7 +3,7 @@
 **Tags:**              post import, feed import, rss import, rss aggregator
 **Requires at least:** 6.0
 **Tested up to:**      7.0
-**Stable tag:**        0.2.10
+**Stable tag:**        0.2.11
 **License:**           GPLv2 or later
 **License URI:**       http://www.gnu.org/licenses/gpl-2.0.html
 **Requires PHP:**       8.3
@@ -65,6 +65,9 @@ Post Edit Screen - Manually set RSS feed link.
 
 
 ## Changelog ##
+
+### 0.2.11 ###
+* Position the RSS Posts admin menu directly below the default Posts menu.
 
 ### 0.2.10 ###
 * Add a dedicated RSS Feed address term field/column and use that saved URL as the import source so feed names can remain descriptive.

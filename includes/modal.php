@@ -285,10 +285,17 @@ class RSS_Post_Aggregator_Modal {
 	 */
 	public function save_posts( $posts, $feed_id, $post_type = '' ) {
 
-		$post_type = $post_type ? sanitize_key( $post_type ) : $this->tax->get_target_post_type( $feed_id );
-		$updated   = array();
+		$post_type       = $post_type ? sanitize_key( $post_type ) : $this->tax->get_target_post_type( $feed_id );
+		$default_tax     = $this->tax->get_default_taxonomy( $feed_id );
+		$default_term_id = $this->tax->get_default_term_id( $feed_id, $post_type, $default_tax );
+		$updated         = array();
+		$import_settings = array(
+			'post_status'      => $this->tax->get_default_post_status( $feed_id ),
+			'default_taxonomy' => $default_tax,
+			'default_term_id'  => $default_term_id,
+		);
 		foreach ( $posts as $post_data ) {
-			$updated[ $post_data['title'] ] = $this->cpt->insert( $post_data, $feed_id, $post_type );
+			$updated[ $post_data['title'] ] = $this->cpt->insert( $post_data, $feed_id, $post_type, $import_settings );
 		}
 
 		return $updated;

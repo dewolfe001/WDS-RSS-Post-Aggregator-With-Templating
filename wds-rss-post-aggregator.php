@@ -1,12 +1,12 @@
 <?php
 /**
  * Plugin Name: RSS Post Aggregator
- * Plugin URI:  http://webdevstudios.com
+ * Plugin URI:  https://webdevstudios.com
  * Description: Aggregate posts from RSS Feeds
  * Version:     0.2.12
- * Author:      WebDevStudios, Justin Sternberg
+ * Author:      dewolfe001, WebDevStudios, Justin Sternberg
  * Author URI:  http://webdevstudios.com
- * Donate link: https://paypal.me/web321co
+ * Donate link: https://paypal.me/web321co/20
  * License:     GPLv2+
  * Requires at least: 6.0
  * Requires PHP: 8.1

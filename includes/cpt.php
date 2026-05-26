@@ -289,7 +289,7 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 	 * @author JayWood, Justin Sternberg
 	 * @return array|string
 	 */
-	public function insert( $post_data, $feed_id, $post_type = '' ) {
+	public function insert( $post_data, $feed_id, $post_type = '', $import_settings = array() ) {
 		$post_type     = $this->get_import_post_type( $post_type );
 		$existing_post = $this->imported_post_exists( $post_data, $post_type );
 
@@ -303,10 +303,15 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 		$post_timestamp = $this->get_import_timestamp( $post_data );
 		$settings       = new RSS_Post_Aggregator_Settings();
 
+		$post_status = isset( $import_settings['post_status'] ) ? sanitize_key( $import_settings['post_status'] ) : 'draft';
+		if ( ! in_array( $post_status, array( 'draft', 'future', 'publish' ), true ) ) {
+			$post_status = 'draft';
+		}
+
 		$args = array(
 			'post_content'  => wp_kses_post( stripslashes( $settings->render_post_content( $post_data ) ) ),
 			'post_title'    => esc_html( RSS_Post_Aggregator::decode_entities( stripslashes( $post_data['title'] ) ) ),
-			'post_status'   => 'draft',
+			'post_status'   => $post_status,
 			'post_type'     => $post_type,
 			'post_date'     => date( 'Y-m-d H:i:s', $post_timestamp ),
 			'post_date_gmt' => gmdate( 'Y-m-d H:i:s', $post_timestamp ),
@@ -336,6 +341,10 @@ class RSS_Post_Aggregator_CPT extends CPT_Core {
 				'img_src'           => has_post_thumbnail( $post_id ) ? wp_get_attachment_url( get_post_thumbnail_id( $post_id ) ) : $this->sideload_featured_image( isset( $post_data['image'] ) ? esc_url_raw( $post_data['image'] ) : '', $post_id ),
 				'wp_set_post_terms' => taxonomy_exists( $this->tax_slug ) ? wp_set_post_terms( $post_id, array( $feed_id ), $this->tax_slug, true ) : false,
 			);
+
+			if ( ! empty( $import_settings['default_taxonomy'] ) && ! empty( $import_settings['default_term_id'] ) && taxonomy_exists( $import_settings['default_taxonomy'] ) ) {
+				$report['wp_set_default_terms'] = wp_set_post_terms( $post_id, array( absint( $import_settings['default_term_id'] ) ), $import_settings['default_taxonomy'], true );
+			}
 		} else {
 			$report = 'failed';
 		}

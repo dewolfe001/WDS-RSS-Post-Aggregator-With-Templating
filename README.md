@@ -39,6 +39,8 @@ Use the Featured image panel on each imported RSS Post to upload or replace the 
 
 Feed links can be configured for automatic hourly imports from the RSS Feed Links taxonomy screen. Each feed has a dedicated RSS Feed address field for the source URL, can import into RSS Posts or another public post type, and existing imported items are skipped instead of updated so manually edited content remains untouched. The RSS Posts > Settings screen documents the available template tokens and controls the post content template used for new imports.
 
+Feed links can now define an optional default category and post status for imported entries. Use the RSS Feed Links taxonomy edit screen to set a fallback category and publish workflow (for example Draft, Pending Review, or Published) per feed; these defaults are applied during both manual and scheduled imports when no more specific value is chosen.
+
 You may also want to access the category information, which is housed in the `rss-category` taxonomy.  'Rss Feed Links' are housed in the `rss-feed-links` taxonomy as well.
 
 ## Frequently Asked Questions ##
@@ -65,6 +67,9 @@ Post Edit Screen - Manually set RSS feed link.
 
 
 ## Changelog ##
+
+### Unreleased ###
+* Add per-feed default import category and post status settings for manual and scheduled imports.
 
 ### 0.2.12 ###
 * Position the RSS Posts admin menu directly below the default Posts menu.

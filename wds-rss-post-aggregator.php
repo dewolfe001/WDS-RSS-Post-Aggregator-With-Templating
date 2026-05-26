@@ -9,7 +9,7 @@
  * Donate link: https://paypal.me/web321co
  * License:     GPLv2+
  * Requires at least: 6.0
- * Requires PHP: 8.3
+ * Requires PHP: 8.1
  * Text Domain: wds-rss-post-aggregator
  * Domain Path: /languages
  */

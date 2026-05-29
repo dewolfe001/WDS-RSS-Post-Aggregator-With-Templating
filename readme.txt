@@ -3,7 +3,7 @@ Contributors:      jtsternberg, dewolfe001
 Tags:              post import, feed import, rss import, rss aggregator
 Requires at least: 6.0
 Tested up to:      7.0
-Stable tag:        0.2.12
+Stable tag:        0.2.13
 License:           GPLv2 or later
 License URI:       http://www.gnu.org/licenses/gpl-2.0.html
 Requires PHP:      8.3
@@ -41,6 +41,9 @@ Use the Featured image panel on each imported RSS Post to upload or replace the 
 
 Feed links can be configured for automatic hourly imports from the RSS Feed Links taxonomy screen. Each feed can import into RSS Posts or another public post type, and existing imported items are skipped instead of updated so manually edited content remains untouched. The RSS Posts > Settings screen documents the available template tokens and controls the post content template used for new imports.
 
+Use the `[rss_posts]` shortcode to display imported RSS Posts anywhere shortcodes are supported. The shortcode accepts `limit`, `orderby`, `order`, `category`/`category_id`, `feed`/`feed_id`, `excerpt_length`, `date_format`, `image_size`, `item_template`, `wrapper_template`, and `no_posts` attributes. Templates can use tokens such as `{title}`, `{permalink}`, `{original_url}`, `{excerpt}`, `{content}`, `{date}`, `{thumbnail}`, `{audio_url}`, `{feed_url}`, `{feed_source}`, `{rss_categories}`, and `{rss_feed_terms}`. For example: `[rss_posts limit="3" item_template="<li>{thumbnail}<a href='{permalink}'>{title}</a>{excerpt}</li>"]`.
+
+
 == Frequently Asked Questions ==
 [Open A Ticket](https://github.com/WebDevStudios/WDS-RSS-Post-Aggregator/issues)
 
@@ -55,6 +58,9 @@ Feed links can be configured for automatic hourly imports from the RSS Feed Link
 5. Post Edit Screen - Manually set RSS feed link
 
 == Changelog ==
+
+= 0.2.13 =
+* Add the `[rss_posts]` shortcode with templated list output for imported RSS Posts.
 
 = 0.2.12 =
 * Position the RSS Posts admin menu directly below the default Posts menu.
@@ -107,8 +113,8 @@ Feed links can be configured for automatic hourly imports from the RSS Feed Link
 
 == Upgrade Notice ==
 
-= 0.2.12 =
-RSS Posts now appears directly below Posts in the WordPress admin sidebar.
+= 0.2.13 =
+Use the `[rss_posts]` shortcode to display a templated list of imported RSS Posts.
 
 = 0.2.4 =
 Feeds can now import hourly into RSS Posts or another public post type while skipping existing imported items.

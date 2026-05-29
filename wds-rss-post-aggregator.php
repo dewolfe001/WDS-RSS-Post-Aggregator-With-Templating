@@ -3,7 +3,7 @@
  * Plugin Name: RSS Post Aggregator
  * Plugin URI:  https://webdevstudios.com
  * Description: Aggregate posts from RSS Feeds
- * Version:     0.2.12
+ * Version:     0.2.13
  * Author:      dewolfe001, WebDevStudios, Justin Sternberg
  * Author URI:  http://webdevstudios.com
  * Donate link: https://paypal.me/web321co/20
@@ -68,7 +68,7 @@ spl_autoload_register( __NAMESPACE__ . '\rss_post_aggregator_autoload_classes' )
  */
 class RSS_Post_Aggregator {
 
-	const VERSION = '0.2.12';
+	const VERSION = '0.2.13';
 	private $cpt_slug          = 'rss-posts';
 	private $tax_slug          = 'rss-feed-links';
 	private $rss_category_slug = 'rss-category';
